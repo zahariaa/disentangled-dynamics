@@ -12,7 +12,7 @@ The primary goal of my project is to create a generative model that can identify
 
 This use of prediction for self-supervision is partly inspired by slow feature analysis, which assumes that object identities, and the collection of features that feed into those identity representations, remain relatively stable over time. The model should therefore only represent features and objects that have predictive value for the future.
 
-The hope is that this learning procedure leads to more robust representations of objects (cf. [Lotter Kreiman Cox 2017](https://arxiv.org/1605.08104)).
+The hope is that this learning procedure leads to more robust representations of objects (cf. [Lotter Kreiman Cox 2017](https://arxiv.org/abs/1605.08104)).
 
 
 ### Possible tasks
