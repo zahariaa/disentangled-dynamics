@@ -29,7 +29,7 @@ I also liked the idea of using the categorical distribution to attempt to make t
 
 
 ## 2019/03/12: literature search update
-Some of the class readings had either (1) come up in early my literature searches for this project (Importance Weighted Autoencoders), or (2) informed me of relevant work that I was previously unaware of (InfoGAN, &\beta;-VAE, Fixing a broken ELBO).
+Some of the class readings had either (1) come up in early my literature searches for this project (Importance Weighted Autoencoders), or (2) informed me of relevant work that I was previously unaware of (InfoGAN, &beta;-VAE, Fixing a broken ELBO).
 Specifically, these share the ideas of an alternative objective function; together, they prioritize a high entropy latent code and high mutual information between the latents and the inputs.
 The apparent factorization of input generating factors is appealing, and directly related to my goal of learning object identity representations that are robust to different views, lighting, etc, as the Lotter et al (2017) paper aims to do.
 
