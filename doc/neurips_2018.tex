@@ -61,20 +61,34 @@
 
 How to best learn representations of the environment that are useful for solving tasks is a fundamental question in neural network research. State-of-the-art techniques for many machine learning tasks, such as object classification, involve supervised learning. Machine performance on these tasks lags behind human performance---they generally don't learn representations of object categories in the same, fully supervised manner. Yet they do not learn in a fully unsupervised manner either: in addition to rewards in the environment, there is a wealth of information that is contained in the stimuli themselves.
 
-\subsection*{Outline of the rest of the introduction}
+\section*{Outline of the rest of the introduction}
+\subsection*{the rest of the introduction in the introduction}
 \begin{itemize}
   \item Identities of objects and scenes in the real world tend to be relatively stable, while their appearance in pixel space can change drastically (e.g., lighting, rotation, scaling, within-category variation). cf. Slow feature analysis \cite{Wiskott2002}
   \item Want disentangled representations \cite{DiCarlo2007,Bengio2009,Chen2016,Higgins2017,Alemi2017}
   \item Making predictions, and comparing those predictions to incoming stimuli can serve as a self-supervision signal \cite{Whitney2016,Doersch2015}
-  \item Recent work: Contrastive Predictive Coding (CPC) \cite{Oord2018} uses prediction as a self-supervision signal to attempt to learn more "useful" object representations.
-  \begin{itemize}
-    \item Furthermore, CPC uses an objective function that implicitly maximizes the mutual information between latent "context" variables and \emph{future} inputs, by explicitly minimizing normalized density ratios of inferred \emph{future latent} variables and samples from the posterior.
-    \item CPC makes predictions at one level of abstraction, and on immediately subsequent instances in input stream
-  \end{itemize}
+\end{itemize}
+\subsection*{Recent work}
+\begin{itemize}
+  \item Contrastive Predictive Coding (CPC) \cite{Oord2018} uses prediction as a self-supervision signal to attempt to learn more "useful" object representations.
+  \item Furthermore, CPC uses an objective function that implicitly maximizes the mutual information between latent "context" variables and \emph{future} inputs, by explicitly minimizing normalized density ratios of inferred \emph{future latent} variables and samples from the posterior.
+  \item CPC makes predictions at one level of abstraction, and on immediately subsequent instances in input stream
+\end{itemize}
+\subsection*{Our Contribution}
+\begin{itemize}
   \item Making extremely precise predictions of the future (e.g., pixel-level image predictions) only makes sense for very short time intervals, and becomes impossible for longer time scales
-  \item Contribution of this work: we aim to make predictions on multiple time scales, with increasing levels of abstraction and complexity for increasing time horizons
+  \item we aim to make predictions on multiple time scales, with increasing levels of abstraction and complexity for increasing time horizons
   \item As yet not determined method: we will implement a hierarchical, autoregressive model (e.g. ResNet VAE \cite{Kingma2016}, Ladder VAE \cite{Sonderby2016}, Variational Ladder Autoencoder \cite{Zhao2017}, etc) with a CPC-like objective that makes predictions on latent variables at multiple levels of abstraction
-  \item Possible tasks: self-supervised training using the CORe50 dataset \cite{Lomonaco2017}, which has 15sec 20fps videos of 50 objects, held in hand, belonging to 10 categories, each recorded in 11 distinct sessions (8 indoor, 3 outdoor). test object classification of new instances in the dataset
+\end{itemize}
+\subsection*{Possible tasks}
+\begin{itemize}
+  \item A sequence of frames in which a subset MNIST digits appear at random locations from frame to frame, but the same subset of digits have a very high probability of occurring in the subsequent frame.
+  \begin{itemize}
+    \item e.g., 1 and 2 each have a 99\% probability of being in a given frame, and 3 and 4 have a 1\% probability of occurring in a given frame
+    \item the point of this task is to dissociate location cues with object identity
+    \item we want the model to only represent and synthesize the objects that predictably appear, and ignore the ``distractor'' objects
+  \end{itemize}
+  \item self-supervised training using the CORe50 dataset \cite{Lomonaco2017}, which has 15sec 20fps videos of 50 objects, held in hand, belonging to 10 categories, each recorded in 11 distinct sessions (8 indoor, 3 outdoor). test object classification of new instances in the dataset
   \item A similar task on Basel faces \cite{Paysan2009}, as in \cite{Kulkarni2015,Whitney2016}
 \end{itemize}
 
