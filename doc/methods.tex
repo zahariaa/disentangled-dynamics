@@ -1,0 +1,88 @@
+\section{Methods}
+
+Let $\mathbf{x} = (\mathbf{x}_1, \dots, \mathbf{x}_t, \dots, \mathbf{x}_T)$ the observations and $\mathbf{z} = (\mathbf{z}_1, \dots, \mathbf{z}_t, \dots, \mathbf{z}_T)$ the corresponding latent embeddings, where $\mathbf{x}_t \in \mathbb{R}^m$ and $\mathbf{z}_t \in \mathbb{R}^n$.
+
+Following \cite{Archer2016} we structure the inverse covariance $\Sigma^{-1}$ of the approximate posterior $q(z|x) = \mathcal{N}(\mu_\phi(x), \Sigma_\phi(x))$ to have a blog tri-diagonal structure.
+
+$$
+\Sigma_\phi(x)^{-1} = \begin{bmatrix}
+  D_0 & B_0^T & & \\
+  B_0 & D_1 & B_1^T & \\
+   & \ddots & \ddots & B^T_{T-1} \\
+   & & B_{T-1} & D_T \\
+\end{bmatrix}
+$$
+
+This particular structure embodies that $z_t$ conditionally only depends on $z_{t-1}$ described by the precision matrix $B_0$.
+
+The matrices $B$ correspond to the partial correlations of latent variables between adjacent time-points. We here propose to impose linear dynamics for transitions in latent space
+
+\begin{align*}
+  \mathbf{z}_t = A_t \mathbf{z}_{t-1} \\
+\end{align*}
+
+where $A_t = L \Lambda_t L^{-1}$ is the dynamics matrix with eigenvector basis $L$ and eigenvalues $\Lambda_t$ at time-point $t$. In particular, for factorized latent representations we set $L = I$. 
+
+Allowing different eigenvalues for each time-point $t$ admits complex dynamics. We will later impose regularizing constraints on the variation of the eigenvalues across time-points.
+
+The approximate posterior for a given time point $t$ is an isotropic Gaussian (following standard variational mean-field approximation), thereby reflecting the conditional independence assumption that $q(z_t|x_t) = \prod_{i}^n q(z^{(i)}_t|x_t)$. We therefore set $D_t$ to I. [\textit{unclear on that part}]
+
+\subsection{Unconstrained Eigenvalues}
+
+In the first case, eigenvalues of $A_t$ can change with every time-point and the mean and eigenvalues are parametrized by a neuronal network:
+
+\begin{align*}
+    \Lambda_t & = \text{NN}_\phi_\Lambda(\textbf{x}_t, \textbf{x}_{t-1}) \\
+    \mu_t & = \text{NN}_\phi_\mu(\textbf{x}_t) \\
+\end{align*}
+
+\subsection{Constraining dynamics}
+
+\subsubsection{Slow dynamics}
+
+To encourage slow dynamical changes in latent space (and therefore learning of slow changing/predictable features) wen can  constraint the transitional dynamics to be slow. In the first step we therefore add a regularizing term to the loss:
+
+\begin{align*}
+    \sum_0^{T-1} ||\text{diag}(\Lambda_t) - \mathbf{1}||_1
+\end{align*}
+
+\subsubsection{Different dynamics for latents}
+
+Instead of applying the same regularization to all eigenvalues, we can instead specify a prior over eigenvalues. In particular, let $\lambda^{(i)}_t$ be the eigenvalue corresponding to the $i$-th latent dimension for the transition from time-point $t$ to $t+1$. For instance, defining the regularizing loss as 
+
+\begin{align*}
+    \sum_0^{T-1} \sum_i^{n} \gamma(i) |\lambda^{(i)}_t - 1|
+\end{align*}
+
+where the regularizing hyperparameter $\gamma$ allows for different strengths of the 'slow' dynamics regularizer for each latent variable (e.g., $\gamma(i) \propto i$). (\textit{this probably imposes an implicit prior on lambda - there is probably a better way to get this prior than just tuning the regularization.}).
+
+\subsection{Future directions or additional parts}
+Depending on how well things go (and make sense), this can be the next steps:
+\subsubsection{Allowing for interactions in latent space}
+
+Some generative factors can only be expressed in more than one dimension (e.g. angle of rotation of an object). The diagonal construction of A might therefore be to constrained.
+
+Hence, the idea would be to relax $A$ to deviate from diagonal, hence $A_t = \text{NN}(\mathbf{x_t})$ thereby allowing for interactions in latent space, while still regularizing:
+
+\begin{align*}
+    \sum_0^{T-1} ||A_t - I||_1
+\end{align*}
+
+\subsubsection{Enforcing low-dimensional subspaces}
+
+What we actually want (instead of having an A matrix that has small deviations from an identity matrix) are small subspaces (i.e., small Jordan blocks in the Jordan decomposition of A). Therefore, this step would try to actually enforce this constraint directly.
+
+\subsection{Assessment of disentanglement}
+
+\subsubsection{Qualitative}
+
+\begin{itemize}
+\item Are two generative objects (i.e., an object vs. the background) that change with different dynamics captured in different latent dimensions? 
+\item Can we recover bimodal distributions of learned eigenvalues?
+\end{itemize}
+
+\subsection{Quantitative}
+
+Using established metrics, we will compare the disentanglement of latent representations across the different model variants as well as with established models in the literature.
+
+missing part: construcing the full covariance matrix from

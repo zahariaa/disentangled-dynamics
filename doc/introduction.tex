@@ -1,0 +1,41 @@
+\section{Introduction}
+
+A fundamental goal in machine learning is to build algorithms which can learn to predict future states, given a set of training data. In order to make such a problem tractable, certain inductive biases are adopted which constrain the possible solutions to a smaller set. In the case of visual object recognition and classification, one commonly adopted inductive bias is that the appearance of a given object can be determined by a small set of independent generative factors, such as the object’s identity, size, rotation, lighting, and color. A learned representation having these properties is said to be \textit{disentangled} \cite{DiCarlo2007,Bengio2009}, that is, object properties with different semantic meanings are not distributed across latent variables.
+
+Recent work has attempted to develop variational autoencoders (VAE) \cite{Kingma2014} that can learn disentangled representations, either by regularizing reconstruction error \cite{Higgins2017}, targeting a particular point on a rate-distortion curve \cite{Alemi2017}, or level of overlap of latent factors \cite{Mathieu2018}. These approaches, however, are quite general and do not necessarily lead to truly disentangled representations \cite{Alemi2017,Mathieu2018}.
+
+We hypothesize that a further inductive bias is necessary to produce truly disentangled representations. Objects are not static; they exist in a continuous world. The putative generative factors that determine an object’s appearance are likely to remain stable (in the case of object identity) or vary smoothly and slowly over time (in the case of position, rotation, etc.) \cite{Wiskott2002}. We propose that a representation which factorizes static properties and their dynamics will lead to better disentanglement.
+
+\subsection*{TODO: motivate methods with related work}
+\begin{itemize}
+    \item briefly discuss Archer paper \cite{Archer2016}
+    \begin{itemize}
+        \item even more briefly discuss Johnson paper \cite{Johnson2016}
+        \begin{itemize}
+            \item They have LDS SVAE, which uses structured VAE to model a latent LDS graphical model. SLDS VAE uses latent switching LDS to represent ``continuous latent states that evolve according to a discrete library of linear dynamics''
+        \end{itemize}
+    \end{itemize}
+    \item Related work: \cite{Gregor2015a,Krishnan2015,Watter2015,Karl2016,Fraccaro2016,Fraccaro2017a,Krishnan2017}
+    \item Krishnan2015 ``Deep Kalman Filters''
+    \begin{itemize}
+        \item Use MLP or RNNs rather than PGMs
+        \item Very similar. ELBO + Kalman filter
+        \item Uses NNs for nonlinear dynamics
+    \end{itemize}
+    \item Krishnan et al 2017 ``Structured Inference Networks for Nonlinear State Space Models'' further generalizes this. Still using RNNs.
+    \item Fraccaro et al 2017 ``A Disentangled Recognition and Nonlinear Dynamics Model for Unsupervised Learning''
+    \begin{itemize}
+        \item Separate latent representations: object rep from recognition network, and a latent state describing its dynamics
+        \item ``Kalman VAE''
+        \item ``At each time step $t$, a variational auto-encoder compresses high-dimensional visual stimuli $x_t$ into latent encodings $a_t$. The temporal dynamics in the learned $a_t$-manifold are modelled with a linear Gaussian state space model that is adapted to handle complex dynamics (despite the linear relations among its states $z_t$). The parameters of the state space model are adapted at each time step, and non-linearly depend on past $a_t$’s via a recurrent neural network''
+        \item They model a bouncing ball ``video''. I think we can do better?
+    \end{itemize}
+    \item Fraccaro et al 2016 ``Sequential Neural Models with Stochastic Layers''
+    \begin{itemize}
+        \item Has separate layers of deterministic and stochastic latent variables
+    \end{itemize}
+    \item Gregor 2015 ``DRAW'' uses RNN to refine image reconstructions sequentially
+\end{itemize}
+
+\subsection*{TODO: briefly summarize our contributions and tasks}
+
