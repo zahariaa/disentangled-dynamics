@@ -11,20 +11,20 @@ I cloned the repo.
 
 ## 2019/04/01: meeting with John and Niko
 
-Aim: learning disentangled and predictable latent represenations in a VAE framework by constraining dynamics of latent represenations
+Aim: learning disentangled and predictable latent representations in a VAE framework by constraining dynamics of latent representations
 
 Task: object(s) moving in front of a background
 
 Success measures:
-- dissociating background from object (e.g., inpainting)
+- dissociating background from object (e.g., in-painting)
 - measures of disentanglement
 
 #### Roadmap:
 - Step 0:
-  - Training Encdoer and Decoder separatly, supervised
-  - Simple input: 2D, white ball with linear dynamics. Background: GRF or fourier-basis generated.
+  - Training Encoder and Decoder separately, supervised
+  - Simple input: 2D, white ball with linear dynamics. Background: GRF or Fourier-basis generated.
   - decoder: Can occlusion be decoded (correctly painted)?
-  - encoder: Latent code for position as one-hot or as cartesian coordinates?
+  - encoder: Latent code for position as one-hot or as Cartesian coordinates?
 
 - Step 1:
   - VAE with constrained linear dynamics
@@ -35,7 +35,7 @@ Success measures:
 - billiard dynamics
 - more complex dynamics: Lorenz attractor
 - gravity
-- more dynamic dimensions (e.g., coloror  size of sprites change)
+- more dynamic dimensions (e.g., color or  size of sprites change)
 - trade-off between reconstruction and (latent) future prediction
 - multiple objects
 - learning shading
