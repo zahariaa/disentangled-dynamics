@@ -17,7 +17,7 @@ from torchvision import transforms, utils
 class dSpriteBackgroundDataset(Dataset):
     """ dSprite with (gaussian) background dataset."""
     
-    def __init__(self, npz_file='dsprites-dataset-master/dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz', transform=None):
+    def __init__(self, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -35,7 +35,6 @@ class dSpriteBackgroundDataset(Dataset):
             print('Finished')
 
         self.data = np.load(root,encoding='latin1')
-        #self.data = np.load(npz_file,encoding='latin1')
 
 #         data = torch.from_numpy(data['imgs']).unsqueeze(1).float()
 #         train_kwargs = {'data_tensor':data}
