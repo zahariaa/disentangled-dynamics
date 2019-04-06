@@ -164,16 +164,17 @@ def show_images_grid(samplebatch):
 def demo(shapetype='dsprite'):
    dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype)
    
-   print('One sample (#300000), addressed')
-   sample = dSpritesB[300000]
+   idx = 300001
+   print('One sample (#{}), addressed'.format(idx))
+   sample = dSpritesB[idx]
    h = plt.imshow(sample['image'],cmap=plt.cm.gray)
    plt.show()
    print('Latents: {}'.format(sample['latents'])) 
    
    transformed_dataset = dSpriteBackgroundDataset(transform=Rescale(32),shapetype=shapetype)
    
-   print('One rescaled sample (#300000), addressed')
-   sample_trans = transformed_dataset[300000]
+   print('One rescaled sample (#{}), addressed'.format(idx))
+   sample_trans = transformed_dataset[idx]
    h = plt.imshow(sample_trans['image'],cmap=plt.cm.gray)
    plt.show()
    print('Latents: {}'.format(sample_trans['latents'])) 
