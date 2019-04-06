@@ -20,8 +20,6 @@ class dSpriteBackgroundDataset(Dataset):
     def __init__(self, transform=None):
         """
         Args:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
@@ -34,21 +32,21 @@ class dSpriteBackgroundDataset(Dataset):
             subprocess.call(['./download_dsprites.sh'])
             print('Finished')
 
-        self.data = np.load(root,encoding='latin1')
+        data = np.load(root,encoding='latin1')
 
 #         data = torch.from_numpy(data['imgs']).unsqueeze(1).float()
 #         train_kwargs = {'data_tensor':data}
         
-        self.imgs = self.data['imgs']
-        self.latents_values = self.data['latents_values']
-        self.latents_classes = self.data['latents_classes']
-        self.metadata = self.data['metadata'][()]
+        self.shapetype = shapetype
+        self.imgs = data['imgs']
+        self.latents_values = data['latents_values']
+        self.latents_classes = data['latents_classes']
+        self.metadata = data['metadata'][()]
         self.latents_sizes = self.metadata['latents_sizes']
         self.latents_bases = np.concatenate((self.latents_sizes[::-1].cumprod()[::-1][1:],
                                 np.array([1,])))
         
         self.transform = transform
-    
     def __len__(self):
         return self.latents_bases[0]
     
