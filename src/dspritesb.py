@@ -51,11 +51,19 @@ class dSpriteBackgroundDataset(Dataset):
         return self.latents_bases[0]
     
     def __getitem__(self, idx, mu=None):
-        if mu is None:
-            mu = np.random.randint(64,size=2)
-        image, mu = self.dSprite_gaussian_background(idx,mu)
+            foreground = self.pick_dSprite(idx)
         
-        sample = {'image': image, 'latents': self.latents_classes[idx,:], 'background': mu}
+        # Set up background
+        if mu is None:
+            mu = 2*np.random.randint(32,size=2)
+        background = self.gaussian2D(mu)
+
+        # Combine foreground and background
+        im = np.clip(255*(foreground+0.8*background),0,255).astype('uint8')
+
+        # Output
+        sample = {'image': im,
+                  'latents': np.concatenate((self.latents_values[idx,-2:],mu.astype('float64')))} 
 
         if self.transform:
             sample = self.transform(sample)
@@ -63,7 +71,7 @@ class dSpriteBackgroundDataset(Dataset):
         return sample
     
     # Generate 2D gaussian backgrounds
-    def gaussian2D(self,mu,Sigma,pos=None):
+    def gaussian2D(self,mu=np.array([31,31]),Sigma=np.array([[1000, 0], [0, 1000]]),pos=None):
         if pos is None:
             gridx, gridy = np.meshgrid(np.arange(0,64),np.arange(0,64))
             pos = np.empty(gridx.shape + (2,))
@@ -85,14 +93,12 @@ class dSpriteBackgroundDataset(Dataset):
         return fac/np.max(fac)
 
     # Generate dSprite with 2D gaussian background
-    def dSprite_gaussian_background(self,idx=None,mu=np.array([31,31]),Sigma=np.array([[1000, 0], [0, 1000]])):
+    def pick_dSprite(self,idx=None):
         if idx is None:
             np.random.randint(self.latents_bases[0])
-        background = self.gaussian2D(mu,Sigma)
         im = self.imgs[idx,:,:]
-        im = np.clip(255*(im+0.8*background),0,255).astype('uint8')
 
-        return im, mu
+        return im
 
 
 # Rescale images
@@ -110,16 +116,16 @@ class Rescale(object):
         self.pix = pix
 
     def __call__(self, sample):
-        image, latents, background = sample['image'], sample['latents'], sample['background']
+        image, latents = sample['image'], sample['latents']
 
         h,w = image.shape[:2]
         img = transform.resize(image, (self.pix, self.pix))
         
         # h and w are swapped because for images,
         # x and y axes are axis 1 and 0 respectively
-        background = background * [self.pix / w, self.pix / h]
+        latents[-2:] = latents[-2:] * [self.pix / w, self.pix / h]
 
-        return {'image': img, 'latents': latents, 'background': background}
+        return {'image': img, 'latents': latents}
     
 # Helper function to show images
 def show_images_grid(samplebatch):
@@ -147,7 +153,7 @@ def demo():
    sample = dSpritesB[300000]
    h = plt.imshow(sample['image'],cmap=plt.cm.gray)
    plt.show()
-   print('Latents: {}, Background gaussian center: {}'.format(sample['latents'],sample['background'])) 
+   print('Latents: {}'.format(sample['latents'])) 
    
    transformed_dataset = dSpriteBackgroundDataset(transform=Rescale(32))
    
@@ -155,7 +161,7 @@ def demo():
    sample_trans = transformed_dataset[300000]
    h = plt.imshow(sample_trans['image'],cmap=plt.cm.gray)
    plt.show()
-   print('Latents: {}, Background gaussian center: {}'.format(sample_trans['latents'],sample_trans['background'])) 
+   print('Latents: {}'.format(sample_trans['latents'])) 
    
    # Use pytorch dataloader and plot a random batch
    dataloader = DataLoader(transformed_dataset, batch_size=25,
