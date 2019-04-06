@@ -17,9 +17,10 @@ from torchvision import transforms, utils
 class dSpriteBackgroundDataset(Dataset):
     """ dSprite with (gaussian) background dataset."""
     
-    def __init__(self, transform=None):
+    def __init__(self, shapetype='dsprite', transform=None):
         """
         Args:
+            shapetype (string): circle or dsprite
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
@@ -51,6 +52,12 @@ class dSpriteBackgroundDataset(Dataset):
         return self.latents_bases[0]
     
     def __getitem__(self, idx, mu=None):
+        # Set up foreground object
+        if self.shapetype is 'circle':
+            center = 48*self.latents_values[idx,-2:] + np.array([8,8])
+            ###TODO: translate latent scale to radius
+            foreground = self.circle2D(center)
+        elif self.shapetype is 'dsprite':
             foreground = self.pick_dSprite(idx)
         
         # Set up background
@@ -91,6 +98,14 @@ class dSpriteBackgroundDataset(Dataset):
 
         # Normalized to peak at 1
         return fac/np.max(fac)
+
+    # Generate a circle in a random position
+    def circle2D(self,center,radius=6,pos=None):
+        if pos is None:
+            gridx, gridy = np.meshgrid(np.arange(0,64),np.arange(0,64))
+        z = np.square(gridx-center[0]) + np.square(gridy-center[1]) - radius
+    
+        return (z<=np.square(radius)).astype('uint8')
 
     # Generate dSprite with 2D gaussian background
     def pick_dSprite(self,idx=None):
@@ -146,8 +161,8 @@ def show_images_grid(samplebatch):
 
 ### DEMO/TESTING
 
-def demo():
-   dSpritesB = dSpriteBackgroundDataset()
+def demo(shapetype='dsprite'):
+   dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype)
    
    print('One sample (#300000), addressed')
    sample = dSpritesB[300000]
@@ -155,7 +170,7 @@ def demo():
    plt.show()
    print('Latents: {}'.format(sample['latents'])) 
    
-   transformed_dataset = dSpriteBackgroundDataset(transform=Rescale(32))
+   transformed_dataset = dSpriteBackgroundDataset(transform=Rescale(32),shapetype=shapetype)
    
    print('One rescaled sample (#300000), addressed')
    sample_trans = transformed_dataset[300000]
