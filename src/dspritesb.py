@@ -14,6 +14,47 @@ from matplotlib import pyplot as plt
 from skimage import io, transform
 from torchvision import transforms, utils
 
+"""
+Possibly to-do
+
+
+### ouput image dimensions:
+ - return image 3D [n_channels, image_size_x, image_size_y] 
+     (all networks expect [n_batch, n_channels, image_size_x, image_size_y], the trainloader concatenates images along (a new) 0-th dimension)
+ - OR: torchvision.transforms.ToTensor looks like the right choice and could be composed with Rescale (torchvision.transforms.ToTensor expects [H,W,C] and uint8 input)
+
+   train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Compose(
+                                                                    Rescale(32), transforms.ToTensor()),
+                                            shapetype = 'circle'), **params)
+    
+ - CURRENTLY: Channel axis is added in the training loop
+ 
+### output images and labels as float
+ - CURRENTLY: done in training loop
+
+### latents should have the same scaling
+    - otherwise they contribute differently to the loss
+    - CURRENTLY: scaling is done in the training.py
+    
+### seperate training and validation sets
+    - CURRENTLY: no separation (overfitting / fitting to traing samples is likely)
+    - e.g.: https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
+    
+### Minor (not necessary, but I think this would be more conventional)
+    - So far I have seen the output of the train_loader / dataset to be of this form:
+        
+        image, label = train_iter.next()
+        or, resp.:
+        
+        for image_batch, label_batch in train_loader:
+            do training...
+            
+        
+        Probably this would mean that, __getitem__() of dSpriteBackgroundDataset would "return image, label" instead of returning a dictionary (?)
+        
+    
+"""
+
 class dSpriteBackgroundDataset(Dataset):
     """ dSprite with (gaussian) background dataset."""
     
@@ -53,11 +94,11 @@ class dSpriteBackgroundDataset(Dataset):
     
     def __getitem__(self, idx, mu=None):
         # Set up foreground object
-        if self.shapetype is 'circle':
+        if self.shapetype == 'circle':
             center = 48*self.latents_values[idx,-2:] + np.array([8,8])
             ###TODO: translate latent scale to radius
             foreground = self.circle2D(center)
-        elif self.shapetype is 'dsprite':
+        elif self.shapetype == 'dsprite':
             foreground = self.pick_dSprite(idx)
         
         # Set up background
@@ -86,8 +127,8 @@ class dSpriteBackgroundDataset(Dataset):
             pos[:,:,1] = gridy
 
         # from https://scipython.com/blog/visualizing-the-bivariate-gaussian-distribution/
-        n = mu.shape[0]
-        Sigma_det = np.linalg.det(Sigma)
+        #n = mu.shape[0]
+        #Sigma_det = np.linalg.det(Sigma)
         Sigma_inv = np.linalg.inv(Sigma)
         #N = np.sqrt((2*np.pi)**n * Sigma_det)
         # This einsum call calculates (x-mu)T.Sigma-1.(x-mu) in a vectorized
