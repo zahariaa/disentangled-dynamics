@@ -44,3 +44,22 @@ Success measures:
 
 ### related literature:
 - interaction networks
+
+## 2019/04/07: Step 0 - intermediate results
+
+Domain: circle object (with x,y center coordinate) and Gaussian blob background object (with x,y center coordinate, fixed s.d.). x,y \in [0,1]x[0,1]. No dynamics/time yet, simply single images.
+
+Encoder/Decoder are inspired by Higgins (b-VAE). Four conv / transposed conv layers plus a fully connected layer (attaching to the 4D latent code). 
+
+Separate supervised training for encoder and decoder.
+
+Intermediate results:
+
+- Encoder learns the 4D latent vector.
+- Decoder learns to reconstruct from 4D latent vector (no need for one-hot position encoding!).
+
+Some observations:
+- Setting the x,y of the Gaussian blob beyond training range (outside [0,1]) yields reasonable results. The same for the circle blob is not true - however, circle was always present during training. 
+- Kaiming initialization (normal for Conv and Linear) plus Relu might be unfavorable for the decoder (yielding zero output). I therefore used Elu units that don't go dead.
+
+
