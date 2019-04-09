@@ -43,9 +43,10 @@ if __name__ == "__main__":
     parser.add_argument('--max_epochs', default=True, type=int, help='number of epochs of training')
 
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
+    parser.add_argument('--z_dim', default=4, type=int, help='dimension of the representation z')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
-    parser.add_argument('--dataset', default='CelebA', type=str, help='dataset name')
+    parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
     parser.add_argument('--image_size', default=32, type=int, help='image size. now only (32,32) is supported')
     parser.add_argument('--num_workers', default=6, type=int, help='dataloader num_workers')
 
