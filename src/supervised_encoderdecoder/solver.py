@@ -56,6 +56,8 @@ class Solver(object):
         elif args.model.lower() == "decoderbvae_like_welu":
             net = decoderBVAE_like_wElu
             self.modeltype = 'decoder'
+        else:
+            raise Exception('model "%s" unknown' % args.model)
             
         
         self.net = net(n_latent = args.n_latent, img_channels = args.img_channels).to(self.device)
