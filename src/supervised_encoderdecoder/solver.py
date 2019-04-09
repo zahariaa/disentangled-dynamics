@@ -11,6 +11,8 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam, RMSprop
 
+import matplotlib.pyplot as plt
+
 import warnings
 
 import sys
@@ -96,3 +98,22 @@ class Solver(object):
                 cnt += 1
                 if cnt % 200 == 0:
                     print('%0.3e' % actLoss)
+                    
+    
+    def visualizeReconstruction(self, image, reconstruction):
+        """ so far only copied from initial train.py
+        
+            needs to be modified (e.g., integrated with visdom)
+            
+        """
+        
+        plt.subplot(1,2,1)
+        plt.imshow(image[0,:,:,:].detach().cpu().numpy().squeeze())
+        plt.title('true')
+            
+        plt.subplot(1,2,2)
+        plt.imshow(reconstruction[0,:,:,:].detach().cpu().numpy().squeeze())
+        plt.title('reconstructed')
+            
+        plt.pause(.05)
+        plt.show()
