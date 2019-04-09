@@ -43,7 +43,8 @@ if __name__ == "__main__":
     parser.add_argument('--max_epochs', default=True, type=int, help='number of epochs of training')
 
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
-    parser.add_argument('--z_dim', default=4, type=int, help='dimension of the representation z')
+    parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
+    parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
