@@ -13,10 +13,10 @@ this directory for code implementation, testing, etc
 
 ###### 2) train/solver coding
 
-- train.py in each modeling folder
-- convert train.py into solver.py
+- <del>train.py in each modeling folder</del>
+- <del>convert train.py into solver.py</del>
 - implement checkpointing
-- create main.py (for command line training)
+- <del>create main.py (for command line training)</del>
 
 ###### 3) visualization
 
