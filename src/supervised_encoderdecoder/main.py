@@ -10,6 +10,10 @@ import argparse
 import numpy as np
 import torch
 
+import warnings
+warnings.filterwarnings("ignore")
+
+
 from solver import Solver
 
 def str2bool(v):
@@ -30,6 +34,7 @@ def main(args):
 
     net = Solver(args)
 
+    net.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='supervised e')

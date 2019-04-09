@@ -11,6 +11,7 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam, RMSprop
 
+import warnings
 
 import sys
 sys.path.append("..") # Adds higher directory to python modules path.
@@ -22,9 +23,11 @@ from models.decoders import decoderBVAE_like, decoderBVAE_like_wElu
 
 class Solver(object):
     
-    def __init(self, args):
+    def __init__(self, args):
         
         self.use_cuda = args.cuda and torch.cuda.is_available()
+        self.device = torch.device("cuda:0" if self.use_cuda else "cpu")
+
         
         self.max_epochs = args.max_epochs
 
@@ -55,15 +58,14 @@ class Solver(object):
             self.modeltype = 'decoder'
             
         
-        self.net = net(n_latent = args.n_latent, img_channels = args.img_channels)
+        self.net = net(n_latent = args.n_latent, img_channels = args.img_channels).to(self.device)
         self.optimizer = RMSprop(self.net.parameters(), lr=self.lr)
         
         self.loss = MSELoss()
         
     def train(self):
         
-        device = torch.device("cuda:0" if self.use_cuda else "cpu")
-
+        cnt = 0
         for epoch in range(self.max_epochs):
             for samples in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
                 
@@ -71,7 +73,7 @@ class Solver(object):
                 
                 # get current batch and push to device
                 # ([:, None, :, :] currently because channels are not existent yet in the Dataset output)
-                img_batch, code_batch = samples['image'][:,None,:,:].float().to(device), samples['latents'].float().to(device)
+                img_batch, code_batch = samples['image'][:,None,:,:].float().to(self.device), samples['latents'].float().to(self.device)
                 
                 # scale the coordinates such that both the circle and the gaussian center have the same scale
                 code_batch[:, 2:] = code_batch[:,2:] /  32
@@ -88,3 +90,7 @@ class Solver(object):
                 
                 actLoss.backward()
                 self.optimizer.step()
+                
+                cnt += 1
+                if cnt % 200 == 0:
+                    print('%0.3e' % actLoss)

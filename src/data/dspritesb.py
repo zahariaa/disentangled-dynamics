@@ -71,7 +71,7 @@ class dSpriteBackgroundDataset(Dataset):
         if not os.path.exists(root):
             import subprocess
             print('Now downloading dsprites-dataset')
-            subprocess.call(['./download_dsprites.sh'])
+            subprocess.call(['../data/./download_dsprites.sh'])
             print('Finished')
 
         data = np.load(root,encoding='latin1')
