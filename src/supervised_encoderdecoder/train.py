@@ -21,11 +21,14 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam, RMSprop
 
-from dspritesb import dSpriteBackgroundDataset, Rescale
-from supervised_encoderdecoder.encoders import encoderBVAE_like
-from supervised_encoderdecoder.decoders import decoderBVAE_like, decoderBVAE_like_wElu
-
 import matplotlib.pyplot as plt
+
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+
+from data.dspritesb import dSpriteBackgroundDataset, Rescale
+from models.encoders import encoderBVAE_like
+from models.decoders import decoderBVAE_like, decoderBVAE_like_wElu
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
