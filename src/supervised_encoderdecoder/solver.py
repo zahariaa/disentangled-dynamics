@@ -11,8 +11,9 @@ import torch
 from torch.nn import MSELoss
 from torch.optim import Adam, RMSprop
 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
-
+import os
 import warnings
 
 import sys
@@ -31,8 +32,9 @@ class Solver(object):
         self.device = torch.device("cuda:0" if self.use_cuda else "cpu")
 
         
-        self.max_epochs = args.max_epochs
-
+        self.max_iter = args.max_iter
+        self.global_iter = 0
+        
         self.model = args.model
         self.lr = args.lr
         
@@ -67,11 +69,24 @@ class Solver(object):
         
         self.loss = MSELoss()
         
-    def train(self):
+        # prepare checkpointing
+        if not os.path.isdir(args.ckpt_dir):
+            os.mkdir(args.ckpt_dir)
         
-        cnt = 0
-        for epoch in range(self.max_epochs):
+        self.ckpt_dir = args.ckpt_dir
+        self.save_step = args.save_step
+        if self.ckpt_name is not None:
+            self.load_checkpoint(self.ckpt_name)        
+        
+    def train(self):
+        pbar = tqdm(total=self.max_iter)
+        
+        out = False
+        
+        while not out:
             for samples in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
+                
+                self.global_iter += 1
                 
                 self.net.zero_grad()
                 
@@ -95,11 +110,57 @@ class Solver(object):
                 actLoss.backward()
                 self.optimizer.step()
                 
-                cnt += 1
-                if cnt % 200 == 0:
-                    print('%0.3e' % actLoss)
+                if self.global_iter % self.save_step == 0:
+                    self.save_checkpoint('last')
+                    pbar.write('Saved checkpoint(iter:{})'.format(self.global_iter))
+                
+                
+                if self.global_iter >= self.max_iter:
+                    out = True
+                    break
+
+        pbar.write("[Training Finished]")
+        pbar.close()
                     
+    def save_checkpoint(self, filename, silent=True):
+        model_states = {'net':self.net.state_dict(),}
+        optim_states = {'optim':self.optim.state_dict(),}
+        """
+        win_states = {'recon':self.win_recon,
+                      'kld':self.win_kld,
+                      'mu':self.win_mu,
+                      'var':self.win_var,}
+        """
+        win_states = {'none':None}
+        
+        states = {'iter':self.global_iter,
+                  'win_states':win_states,
+                  'model_states':model_states,
+                  'optim_states':optim_states}
+
+        file_path = os.path.join(self.ckpt_dir, filename)
+        with open(file_path, mode='wb+') as f:
+            torch.save(states, f)
+        if not silent:
+            print("=> saved checkpoint '{}' (iter {})".format(file_path, self.global_iter))
     
+    def load_checkpoint(self, filename):
+        file_path = os.path.join(self.ckpt_dir, filename)
+        if os.path.isfile(file_path):
+            checkpoint = torch.load(file_path)
+            self.global_iter = checkpoint['iter']
+            """
+            self.win_recon = checkpoint['win_states']['recon']
+            self.win_kld = checkpoint['win_states']['kld']
+            self.win_var = checkpoint['win_states']['var']
+            self.win_mu = checkpoint['win_states']['mu']
+            """
+            self.net.load_state_dict(checkpoint['model_states']['net'])
+            self.optim.load_state_dict(checkpoint['optim_states']['optim'])
+            print("=> loaded checkpoint '{} (iter {})'".format(file_path, self.global_iter))
+        else:
+            print("=> no checkpoint found at '{}'".format(file_path))
+
     def visualizeReconstruction(self, image, reconstruction):
         """ so far only copied from initial train.py
         

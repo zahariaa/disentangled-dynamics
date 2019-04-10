@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
     parser.add_argument('--batch_size', default=64, type=int, help='batch size')
     parser.add_argument('--shuffle', default=True, type=str2bool, help='shuffle training data')
-    parser.add_argument('--max_epochs', default=True, type=int, help='number of epochs of training')
+    parser.add_argument('--max_iter', default=100000, type=int, help='number of training iterations')
 
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_step', default=10000, type=int, help='number of iterations after which a checkpoint is saved')
 
     parser.add_argument('--ckpt_dir', default='checkpoints', type=str, help='checkpoint directory')
-    parser.add_argument('--ckpt_name', default='last', type=str, help='load previous checkpoint. insert checkpoint filename')
+    parser.add_argument('--ckpt_name', default=None, type=str, help='load previous checkpoint. insert checkpoint filename')
 
     args = parser.parse_args()
 
