@@ -97,6 +97,7 @@ class Solver(object):
             for samples in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
                 
                 self.global_iter += 1
+                pbar.update(1)
                 
                 self.net.zero_grad()
                 
@@ -125,7 +126,7 @@ class Solver(object):
 
                 
                 if self.global_iter % self.save_step == 0:
-                    self.save_checkpoint('last')
+                    self.save_checkpoint(self.ckpt_name)
                     pbar.write('Saved checkpoint(iter:{})'.format(self.global_iter))
                 
                 
