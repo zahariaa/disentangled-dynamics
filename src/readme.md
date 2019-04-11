@@ -20,6 +20,7 @@ this directory for code implementation, testing, etc
 - <del>implement checkpointing</del>
 - <del>create main.py (for command line training)</del>
 - add vizdom board to solver
+- consider learning scheduler (for lr changes) / at least option to change lr from some checkpoint on
 
 ###### 3) visualization
 
