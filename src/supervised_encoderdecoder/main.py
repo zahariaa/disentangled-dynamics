@@ -39,7 +39,7 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='supervised encoder')
 
-    parser.add_argument('--model', default='decoderBVAE_like_wElu', type=str, help='which model to train (encoderBVAE_like, decoderBVAE_like, decoderBVAE_like_wElu))')
+    parser.add_argument('--model', default='encoderBVAE_like', type=str, help='which model to train (encoderBVAE_like, decoderBVAE_like, decoderBVAE_like_wElu))')
 
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
