@@ -65,7 +65,7 @@ class Solver(object):
             
         
         self.net = net(n_latent = args.n_latent, img_channels = args.img_channels).to(self.device)
-        self.optimizer = RMSprop(self.net.parameters(), lr=self.lr)
+        self.optim = RMSprop(self.net.parameters(), lr=self.lr)
         
         self.loss = MSELoss()
         
@@ -74,12 +74,22 @@ class Solver(object):
             os.mkdir(args.ckpt_dir)
         
         self.ckpt_dir = args.ckpt_dir
+        self.load_last_checkpoint = args.load_last_checkpoint
+        self.ckpt_name = '{}_{}_last'.format(self.model.lower(), args.dataset.lower())
+        
+        
         self.save_step = args.save_step
-        if self.ckpt_name is not None:
+        if self.load_last_checkpoint is not None:
             self.load_checkpoint(self.ckpt_name)        
         
+        
+        self.display_step = args.display_step
+        
+        
     def train(self):
+        
         pbar = tqdm(total=self.max_iter)
+        pbar.update(self.global_iter)
         
         out = False
         
@@ -108,7 +118,11 @@ class Solver(object):
                 actLoss = self.loss(predicted_batch, output_batch)
                 
                 actLoss.backward()
-                self.optimizer.step()
+                self.optim.step()
+                
+                if self.global_iter % self.display_step == 0:
+                    pbar.write('iter:{}, loss:{:.3e}'.format(self.global_iter, actLoss))
+
                 
                 if self.global_iter % self.save_step == 0:
                     self.save_checkpoint('last')
@@ -121,7 +135,12 @@ class Solver(object):
 
         pbar.write("[Training Finished]")
         pbar.close()
-                    
+
+    """
+        checkpointing from:
+        https://github.com/1Konny/Beta-VAE/blob/master/solver.py
+    """                    
+    
     def save_checkpoint(self, filename, silent=True):
         model_states = {'net':self.net.state_dict(),}
         optim_states = {'optim':self.optim.state_dict(),}

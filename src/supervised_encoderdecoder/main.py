@@ -37,9 +37,9 @@ def main(args):
     net.train()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='supervised e')
+    parser = argparse.ArgumentParser(description='supervised encoder')
 
-    parser.add_argument('--model', default='decoderBVAE_like_wElu', type=str, help='which model to train (encoderBVAE_like, decoderBVAE_like, decoderBVAE_like_wElu))')
+    parser.add_argument('--model', default='encoderbvae_like', type=str, help='which model to train (encoderBVAE_like, decoderBVAE_like, decoderBVAE_like_wElu))')
 
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
@@ -64,12 +64,13 @@ if __name__ == "__main__":
     parser.add_argument('--output_dir', default='outputs', type=str, help='output directory')
 
     parser.add_argument('--gather_step', default=1000, type=int, help='numer of iterations after which data is gathered for visdom')
-    parser.add_argument('--display_step', default=10000, type=int, help='number of iterations after which loss data is printed and visdom is updated')
     """
-    parser.add_argument('--save_step', default=10000, type=int, help='number of iterations after which a checkpoint is saved')
+    parser.add_argument('--display_step', default=500, type=int, help='number of iterations after which loss data is printed and visdom is updated')
+
+    parser.add_argument('--save_step', default=1000, type=int, help='number of iterations after which a checkpoint is saved')
 
     parser.add_argument('--ckpt_dir', default='checkpoints', type=str, help='checkpoint directory')
-    parser.add_argument('--ckpt_name', default=None, type=str, help='load previous checkpoint. insert checkpoint filename')
+    parser.add_argument('--load_last_checkpoint', default=True, type=str2bool, help='load previous checkpoint if it exists')
 
     args = parser.parse_args()
 
