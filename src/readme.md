@@ -6,6 +6,8 @@ this directory for code implementation, testing, etc
 
 
 - implementational details (in dsprites.py)
+- skimage produces warning: "Anti-aliasing will be enabled by default in skimage 0.15 to avoid aliasing artifacts when down-sampling images.
+  warn("Anti-aliasing will be enabled by default in skimage 0.15 to ". Currently, I suppress warnings in main.py because of that.
 - making stimuli dynamic (3d output)
 - more complex backgrounds
 - more object shapes / size / orientation
@@ -15,14 +17,15 @@ this directory for code implementation, testing, etc
 
 - <del>train.py in each modeling folder</del>
 - <del>convert train.py into solver.py</del>
-- implement checkpointing
+- <del>implement checkpointing</del>
 - <del>create main.py (for command line training)</del>
+- add vizdom board to solver
 
 ###### 3) visualization
 
-- ok, so far
+- <del> visualize static vae </del>
 
 ###### 4) modeling steps:
 
-- auto-encoding circle/gaussian
+- <del>auto-encoding circle/gaussian</del>
 - dynamic auto-encoder
