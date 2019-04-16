@@ -11,22 +11,12 @@ from torch.utils.data import Dataset, DataLoader
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from skimage import io, transform
 from torchvision import transforms, utils
 
 """
 Possibly to-do
 
-
-### ouput image dimensions:
- - return image 3D [n_channels, image_size_x, image_size_y] 
-     (all networks expect [n_batch, n_channels, image_size_x, image_size_y], the trainloader concatenates images along (a new) 0-th dimension)
- - OR: torchvision.transforms.ToTensor looks like the right choice and could be composed with Rescale (torchvision.transforms.ToTensor expects [H,W,C] and uint8 input)
-
-   train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Compose(
-                                                                    Rescale(32), transforms.ToTensor()),
-                                            shapetype = 'circle'), **params)
-    
+### ouput image dimensions:    
  - CURRENTLY: Channel axis is added in the training loop
  
 ### output images and labels as float
@@ -56,7 +46,9 @@ Possibly to-do
 """
 
 class dSpriteBackgroundDataset(Dataset):
-    """ dSprite with (gaussian) background dataset."""
+    """ dSprite with (gaussian) background dataset.
+    __getitem__ returns a 3D Tensor [n_channels, image_size_x, image_size_y] 
+    """
     
     def __init__(self, shapetype='dsprite', transform=None):
         """
@@ -80,7 +72,7 @@ class dSpriteBackgroundDataset(Dataset):
 #         train_kwargs = {'data_tensor':data}
         
         self.shapetype = shapetype
-        self.imgs = data['imgs']
+        self.imgs = data['imgs']*255
         self.latents_values = data['latents_values']
         self.latents_classes = data['latents_classes']
         self.metadata = data['metadata'][()]
@@ -88,7 +80,13 @@ class dSpriteBackgroundDataset(Dataset):
         self.latents_bases = np.concatenate((self.latents_sizes[::-1].cumprod()[::-1][1:],
                                 np.array([1,])))
         
-        self.transform = transform
+        if transform is None:
+            self.transform = transforms.Compose([transforms.ToPILImage(),
+                                                 transforms.ToTensor()])
+        else:
+            self.transform = transforms.Compose([transforms.ToPILImage(),
+                                                 transform,
+                                                 transforms.ToTensor()])
     def __len__(self):
         return self.latents_bases[0]
     
@@ -97,7 +95,7 @@ class dSpriteBackgroundDataset(Dataset):
         if self.shapetype == 'circle':
             center = 48*self.latents_values[idx,-2:] + np.array([8,8])
             ###TODO: translate latent scale to radius
-            foreground = self.circle2D(center)
+            foreground = 255*self.circle2D(center)
         elif self.shapetype == 'dsprite':
             foreground = self.pick_dSprite(idx)
         
@@ -105,18 +103,18 @@ class dSpriteBackgroundDataset(Dataset):
         if mu is None:
             mu = 2*np.random.randint(32,size=2)
         background = self.gaussian2D(mu)
+        background = (255*background).reshape(background.shape+(1,))
 
         # Combine foreground and background
-        im = np.clip(255*(foreground+0.8*background),0,255).astype('uint8')
+        sample = np.clip(foreground+0.8*background,0,255).astype('uint8')
 
         # Output
-        sample = {'image': im,
-                  'latents': np.concatenate((self.latents_values[idx,-2:],mu.astype('float64')))} 
+        latent = np.concatenate((self.latents_values[idx,-2:],mu.astype('float64')))
 
         if self.transform:
             sample = self.transform(sample)
             
-        return sample
+        return sample,latent
     
     # Generate 2D gaussian backgrounds
     def gaussian2D(self,mu=np.array([31,31]),Sigma=np.array([[1000, 0], [0, 1000]]),pos=None):
@@ -145,47 +143,23 @@ class dSpriteBackgroundDataset(Dataset):
         if pos is None:
             gridx, gridy = np.meshgrid(np.arange(0,64),np.arange(0,64))
         z = np.square(gridx-center[0]) + np.square(gridy-center[1]) - radius
-    
-        return (z<=np.square(radius)).astype('uint8')
+        # Threshold by radius
+        z = (z<=np.square(radius)).astype('uint8')
+        # Output 3D [h,w,channel] tensor
+        return z.reshape(z.shape+(1,))
 
     # Generate dSprite with 2D gaussian background
     def pick_dSprite(self,idx=None):
         if idx is None:
-            np.random.randint(self.latents_bases[0])
+            np.random.randint(self.latents_bases[0])            
         im = self.imgs[idx,:,:]
+        im = im.reshape(im.shape+(1,)) # add channel to end (assumes numpy ndarray)
 
         return im
-
-
-# Rescale images
-class Rescale(object):
-    """Rescale the image in a sample to a given size.
-
-    Args:
-        pix (tuple or int): Desired output size. If tuple, output is
-            matched to output_size. If int, smaller of image edges is matched
-            to output_size keeping aspect ratio the same.
-    """
-
-    def __init__(self, pix):
-        assert isinstance(pix, (int, tuple))
-        self.pix = pix
-
-    def __call__(self, sample):
-        image, latents = sample['image'], sample['latents']
-
-        h,w = image.shape[:2]
-        img = transform.resize(image, (self.pix, self.pix))
-        
-        # h and w are swapped because for images,
-        # x and y axes are axis 1 and 0 respectively
-        latents[-2:] = latents[-2:] * [self.pix / w, self.pix / h]
-
-        return {'image': img, 'latents': latents}
     
 # Helper function to show images
-def show_images_grid(samplebatch):
-    num_images=samplebatch['image'].size(0)
+def show_images_grid(samples):
+    num_images=samples.size(0)
     ncols = int(np.ceil(num_images**0.5))
     nrows = int(np.ceil(num_images / ncols))
     _, axes = plt.subplots(ncols, nrows, figsize=(nrows * 3, ncols * 3))
@@ -193,7 +167,7 @@ def show_images_grid(samplebatch):
 
     for ax_i, ax in enumerate(axes):
         if ax_i < num_images:
-          ax.imshow(samplebatch['image'][ax_i], cmap='Greys_r',  interpolation='nearest')
+          ax.imshow(samples[ax_i,0,:,:], cmap='Greys_r',  interpolation='nearest')
           ax.set_xticks([])
           ax.set_yticks([])
         else:
@@ -207,26 +181,26 @@ def demo(shapetype='dsprite'):
    
    idx = 300001
    print('One sample (#{}), addressed'.format(idx))
-   sample = dSpritesB[idx]
-   h = plt.imshow(sample['image'],cmap=plt.cm.gray)
+   sample,latent = dSpritesB[idx]
+   h = plt.imshow(transforms.ToPILImage()(sample),cmap=plt.cm.gray)
    plt.show()
-   print('Latents: {}'.format(sample['latents'])) 
+   print('Latents: {}'.format(latent))
    
-   transformed_dataset = dSpriteBackgroundDataset(transform=Rescale(32),shapetype=shapetype)
+   transformed_dataset = dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),shapetype=shapetype)
    
    print('One rescaled sample (#{}), addressed'.format(idx))
-   sample_trans = transformed_dataset[idx]
-   h = plt.imshow(sample_trans['image'],cmap=plt.cm.gray)
+   sample_trans,latent_trans = transformed_dataset[idx]
+   h = plt.imshow(transforms.ToPILImage()(sample_trans),cmap=plt.cm.gray)
    plt.show()
-   print('Latents: {}'.format(sample_trans['latents'])) 
+   print('Latents: {}'.format(latent_trans)) 
    
    # Use pytorch dataloader and plot a random batch
    dataloader = DataLoader(transformed_dataset, batch_size=25,
                            shuffle=True, num_workers=1)
    print('One minibatch, shuffled and scaled down')
-   for i,samplebatched in enumerate(dataloader):
-       print('Minibatch {}, batch size: {}'.format(i,samplebatched['image'].size())) 
-       show_images_grid(samplebatched)
+   for i,[samples,latents] in enumerate(dataloader):
+       print('Minibatch {}, batch size: {}'.format(i,samples.size())) 
+       show_images_grid(samples)
        break
 
 if __name__ == "__main__":
