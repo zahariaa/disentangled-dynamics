@@ -1,16 +1,42 @@
 this directory for code implementation, testing, etc
 
+### Todo / next-steps (04/17/19)
+
+###### 0)
+
+- equate architecture of decoder and VAE (sigmoid in decoder)
+
+###### 1) Building analyses pipelines/scripts (apply to decoder and VAE)
+
+- Do reconstruction error differ between edges / inside / outside of the circle?
+- Do circle-reconstructions differ as a function of distance to the gaussian center?
+- Entangling/disentangling in the VAE (correlations in latent space)
+- Sweep through generative factors and plot/quantify effect in the latents (of the VAE)
+
+###### 2) Experiments
+
+- train on random sample of (x,y) positions -> validate on unseen positions
+- biased distribution of training samples per label/class
+- non-linear mapping for positions
+- "elongated" ball (make it 5D latent)
+- different shapes
+- potentially different scales
+
+###### 3) new architectures
+
+- bVAE
+
 ### Todo / next-steps (04/08/19)
 
 ###### 1) Stimulus generation
 
 
 - implementational details (in dsprites.py)
-- skimage produces warning: "Anti-aliasing will be enabled by default in skimage 0.15 to avoid aliasing artifacts when down-sampling images.
-  warn("Anti-aliasing will be enabled by default in skimage 0.15 to ". Currently, I suppress warnings in main.py because of that.
-- making stimuli dynamic (3d output)
 - more complex backgrounds
 - more object shapes / size / orientation
+- <del>skimage produces warning: "Anti-aliasing will be enabled by default in skimage 0.15 to avoid aliasing artifacts when down-sampling images.
+  warn("Anti-aliasing will be enabled by default in skimage 0.15 to ". </del> Currently, I suppress warnings in main.py because of that.
+- making stimuli dynamic (3d output)
 
 
 ###### 2) train/solver coding
