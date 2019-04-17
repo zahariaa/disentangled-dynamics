@@ -10,6 +10,7 @@ Created on Tue Apr  9 13:22:30 2019
 import torch
 from torch.nn import MSELoss
 from torch.optim import RMSprop
+from torchvision import transforms
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ import pickle
 import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 
-from data.dspritesb import dSpriteBackgroundDataset, Rescale
+from data.dspritesb import dSpriteBackgroundDataset
 from models import staticVAE32
 from models import loss_function
 
@@ -92,10 +93,10 @@ class Solver(object):
                             'num_workers': args.num_workers}
 
         if args.dataset.lower() == 'dsprites_circle':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=Rescale(32),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
                                             shapetype = 'circle'), **dataloaderparams)
         elif args.dataset.lower() == 'dsprites':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=Rescale(32),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
@@ -155,7 +156,7 @@ class Solver(object):
         running_loss_terminal_display = 0.0 # running loss for the trainstats (gathered and pickeled)
         
         while not out:
-            for samples in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
+            for [samples,latents] in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
                 
                 self.global_iter += 1
                 pbar.update(1)
@@ -165,8 +166,7 @@ class Solver(object):
                 """ /begin of non-generic part (might need to be adapted for different models / data)"""
                 
                 # get current batch and push to device
-                # ([:, None, :, :] currently because channels are not existent yet in the Dataset output)
-                img_batch, code_batch = samples['image'][:,None,:,:].float().to(self.device), samples['latents'].float().to(self.device)
+                img_batch, code_batch = samples.float().to(self.device), latents.float().to(self.device)
                 
                 # scale the coordinates such that both the circle and the gaussian center have the same scale
                 code_batch[:, 2:] = code_batch[:,2:] /  32
