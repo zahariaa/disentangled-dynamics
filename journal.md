@@ -62,4 +62,38 @@ Some observations:
 - Setting the x,y of the Gaussian blob beyond training range (outside [0,1]) yields reasonable results. The same for the circle blob is not true - however, circle was always present during training. 
 - Kaiming initialization (normal for Conv and Linear) plus Relu might be unfavorable for the decoder (yielding zero output). I therefore used Elu units that don't go dead.
 
+## 2019/04/17: meeting with John
 
+Next steps should involve understanding the static case (encoder/decoder/vae/bvae) and models' capabilities and limitations.
+
+Questions:
+
+ Analyses:
+ 
+ Do reconstruction error differ between edges / inside / outside of the circle? 
+  - Analysis for supervised decoder and VAE
+  - Make output layer consistent for decoder and VAE for that case
+  
+ Do circle-reconstructions differ as a function of distance to the gaussian center?
+  - quantify both for decoder/VAE
+  
+ Entangling/disentangling in the VAE
+  - correlation between latents?
+  - sweep through generative factors and plot/quantify effect in the latents of the VAE
+  
+ Experiments:
+ 
+ Training data related:
+  - can decoder interpolate between untrained positions?
+    - train on random sample of (x,y) positions -> validate on unseen positions
+  - what is the effect biased class (i.e., position) frequencies?
+    - biased distribution of training samples per label/class
+ 
+ Exploring the effect of beta in the b-VAE
+  
+ Robustness to other datasets:
+  - non-linear mapping for positions
+  - "elongated" ball (make it 5D latent)
+  - different shapes
+  - potentially different scales
+ 
