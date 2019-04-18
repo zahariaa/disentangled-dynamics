@@ -12,6 +12,7 @@ this directory for code implementation, testing, etc
 - Do circle-reconstructions differ as a function of distance to the gaussian center?
 - Entangling/disentangling in the VAE (correlations in latent space)
 - Sweep through generative factors and plot/quantify effect in the latents (of the VAE)
+- consider posterior variance as well, i.e., \sigma(x)
 
 ###### 2) Experiments
 
@@ -25,6 +26,8 @@ this directory for code implementation, testing, etc
 ###### 3) new architectures
 
 - bVAE
+- potentially: how many channels/layers are necessary? (for the decoder)
+- PCA?
 
 ### Todo / next-steps (04/08/19)
 
