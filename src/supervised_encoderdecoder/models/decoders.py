@@ -124,4 +124,43 @@ class decoderBVAE_like_wElu(nn.Module):
         x = torch.nn.functional.elu(self.convT1(x))    
         
         return x
+
+class decoderBVAE_like_wElu_SigmoidOutput(nn.Module):
+    """ decoder inspired by Higgins, 2017 - for 32x32ximg_channels output and 4 latents as input
+        
+        number of latents can be adapted, spatial input dimensions are fixed
+        
+        training of decoderBVAE_like depends heavily on initialization: output of untrained network might be very sparse because negative input to relus (little gradients to learn on)
+        here, therefore elu non-linearities
+        
+        output non-linearity: sigmoid (as in staticVAE - to compare the difference between the two)
+            
+    
+    """
+    
+    def __init__(self, n_latent = 4, img_channels = 1):
+        super(decoderBVAE_like_wElu_SigmoidOutput, self).__init__()        
+                                                                                # output shape (B = batch size)
+        self.fc = nn.Linear(n_latent, 256, bias = True)                         # B, 256 (after .view(): B, 64, 2, 2)
+        
+        self.convT4 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B, 64, 4, 4
+        self.convT3 = nn.ConvTranspose2d(64, 32, 3, 2, 1, 1)                       # B, 32, 8, 8
+        self.convT2 = nn.ConvTranspose2d(32, 32, 3, 2, 1, 1)                       # B, 32, 16, 16
+        self.convT1 = nn.ConvTranspose2d(32, img_channels, 3, 2, 1, 1)             # B, img_channels, 32, 32
+        
+        self.weight_init()
+        
+    def weight_init(self):
+        for m in self._modules:
+            kaiming_init(m)
+        
+    def forward(self, x):
+
+        x = self.fc(x).view(-1,64,2,2)
+        x = torch.nn.functional.elu(self.convT4(x))
+        x = torch.nn.functional.elu(self.convT3(x))
+        x = torch.nn.functional.elu(self.convT2(x))
+        x = torch.nn.functional.sigmoid(self.convT1(x))    
+        
+        return x
     

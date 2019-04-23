@@ -22,7 +22,7 @@ sys.path.append("..") # Adds higher directory to python modules path.
 
 from data.dspritesb import dSpriteBackgroundDataset
 from models.encoders import encoderBVAE_like
-from models.decoders import decoderBVAE_like, decoderBVAE_like_wElu
+from models.decoders import decoderBVAE_like, decoderBVAE_like_wElu, decoderBVAE_like_wElu_SigmoidOutput
 
 
 class DataGather(object):
@@ -109,6 +109,9 @@ class Solver(object):
         elif args.model.lower() == "decoderbvae_like_welu":
             net = decoderBVAE_like_wElu
             self.modeltype = 'decoder'
+        elif args.model.lower() == "decoderbvae_like_welu_sigmoidoutput":
+            net = decoderBVAE_like_wElu_SigmoidOutput
+            self.modeltype = 'decoder'            
         else:
             raise Exception('model "%s" unknown' % args.model)
             
