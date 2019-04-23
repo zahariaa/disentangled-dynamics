@@ -4,7 +4,7 @@ this directory for code implementation, testing, etc
 
 ###### 0)
 
-- equate architecture of decoder and VAE (sigmoid in decoder)
+- <del>equate architecture of decoder and VAE (sigmoid in decoder)</del>
 
 ###### 1) Building analyses pipelines/scripts (apply to decoder and VAE)
 
@@ -35,6 +35,7 @@ this directory for code implementation, testing, etc
 
 
 - implementational details (in dsprites.py)
+- I trained the decoder using the solver.py in supervised_encoderdecoder -> seems like the coordinates of the gaussian background blob have changed (added by BP 04/23/19)
 - more complex backgrounds
 - more object shapes / size / orientation
 - <del>skimage produces warning: "Anti-aliasing will be enabled by default in skimage 0.15 to avoid aliasing artifacts when down-sampling images.
