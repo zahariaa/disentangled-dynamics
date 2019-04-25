@@ -58,7 +58,7 @@ class dSpriteBackgroundDataset(Dataset):
                 on a sample.
         """
         # Load dataset
-        dset_dir = 'data/dsprites-dataset/'
+        dset_dir = '../data/dsprites-dataset/'
         root = os.path.join(dset_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         if not os.path.exists(root):
             import subprocess
