@@ -141,7 +141,7 @@ class dSpriteBackgroundDataset(Dataset):
         if back is not None:
             # Add background
             if type(back) is not np.ndarray:
-                background = 2*self.gaussian2D(mu=2*np.random.randint(self.pixels/s,size=2))/self.pixels
+                background = 2*self.gaussian2D(mu=2*np.random.randint(self.pixels/2,size=2))/self.pixels
             else:
                 background = self.gaussian2D()
             background = 255*background.reshape((1,)+ims.shape[1:])
