@@ -8,6 +8,7 @@ Stuff to know:
 """
 
 from torch.utils.data import Dataset, DataLoader
+import torch
 import os
 import numpy as np
 from matplotlib import pyplot as plt
@@ -115,6 +116,66 @@ class dSpriteBackgroundDataset(Dataset):
             sample = self.transform(sample)
             
         return sample,latent
+    
+
+    def arbitraryCircle(self,objx=None,objy=None,backx=None,backy=None):
+       # Pick an arbitrary sample by directly addressing it
+        if (objx is not None) and (objy is not None):
+            center = 48*np.array([objx,objy]) + np.array([8,8])
+            ###TODO: translate latent scale to radius
+            foreground = 255*self.circle2D(center)
+        else:
+            foreground = np.zeros((64,64,1))
+        if (backx is not None) and (backy is not None):
+            background = self.gaussian2D(np.array([backx,backy]))
+            background = (255*background).reshape(background.shape+(1,))
+        else:
+            background = np.zeros((64,64,foreground.shape[2]))
+            
+        # Combine foreground and background
+        return np.clip(foreground+0.8*background,0,255).astype('uint8')
+        
+            
+    def findDsprite(self,shape=None,scale=None,orientation=None,posX=None,posY=None,back=None):
+        # Outputs an image or set of images based on the search parameters given by the inputs
+        # Second output is just a list of bools where the matching imgs are true
+        
+        # initialize query to include all dsprites
+        query = np.full((self.latents_bases[0],), True)
+        # narrow search
+        if shape is not None:
+            query = query & (self.latents_classes[:,1]==shape)
+        if scale is not None:
+            query = query & (self.latents_classes[:,2]==scale)
+        if orientation is not None:
+            query = query & (self.latents_classes[:,3]==orientation)
+        if posX is not None:
+            query = query & (self.latents_classes[:,4]==posX)
+        if posY is not None:
+            query = query & (self.latents_classes[:,5]==posY)
+        # Convert list of bools to list of indices
+        idx = np.where(query)[0]
+        # Pick the images
+        ims = self.pick_dSprite(idx)
+        
+        if back is not None:
+            # Add background
+            if type(back) is not np.ndarray:
+                background = self.gaussian2D(mu=2*np.random.randint(32,size=2))
+            else:
+                background = self.gaussian2D()
+            background = 255*background.reshape((1,)+ims.shape[1:])
+
+            # Combine foreground and background
+            ims = np.clip(ims+0.8*np.tile(background,(ims.shape[0],1,1,1)),0,255).astype('uint8')
+
+        return self.transformArray(ims),idx
+    
+    
+    def transformArray(self,ims):
+        # Takes numopy array of image(s) and outputs the image(s), each transformed with self.transform
+        return torch.unsqueeze(torch.cat([self.transform(ims[i,:,:,:]) for i in np.arange(ims.shape[0])]),1)
+    
     
     # Generate 2D gaussian backgrounds
     def gaussian2D(self,mu=np.array([31,31]),Sigma=np.array([[1000, 0], [0, 1000]]),pos=None):
