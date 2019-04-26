@@ -64,7 +64,11 @@ class dSpriteBackgroundDataset(Dataset):
                                                  transforms.ToTensor()])
     
     def __len__(self):
-        return self.latents_bases[0]
+        if self.shapetype == 'circle':
+            # THIS ASSUMES A SINGLE SHAPE AND A SINGLE SCALE
+            return self.latents_bases[2]
+        else:
+            return self.latents_bases[0]
     
     
     def __getitem__(self, idx, mu=None):
