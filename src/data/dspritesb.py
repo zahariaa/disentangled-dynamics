@@ -16,16 +16,6 @@ from torchvision import transforms, utils
 
 """
 Possibly to-do
-
-### ouput image dimensions:    
- - CURRENTLY: Channel axis is added in the training loop
- 
-### output images and labels as float
- - CURRENTLY: done in training loop
-
-### latents should have the same scaling
-    - otherwise they contribute differently to the loss
-    - CURRENTLY: scaling is done in the training.py
     
 ### seperate training and validation sets
     - CURRENTLY: no separation (overfitting / fitting to traing samples is likely)
@@ -37,7 +27,7 @@ class dSpriteBackgroundDataset(Dataset):
     __getitem__ returns a 3D Tensor [n_channels, image_size_x, image_size_y] 
     """
     
-    def __init__(self, shapetype='dsprite', transform=None, data_dir='../data/dsprites-dataset/'):
+    def __init__(self, shapetype='dsprite', transform=None, data_dir='../data/dsprites-dataset/',pixels=64):
         """
         Args:
             shapetype (string): circle or dsprite
@@ -63,6 +53,7 @@ class dSpriteBackgroundDataset(Dataset):
         self.latents_sizes = self.metadata['latents_sizes']
         self.latents_bases = np.concatenate((self.latents_sizes[::-1].cumprod()[::-1][1:],
                                 np.array([1,])))
+        self.pixels = pixels
         
         if transform is None:
             self.transform = transforms.Compose([transforms.ToPILImage(),
@@ -79,7 +70,7 @@ class dSpriteBackgroundDataset(Dataset):
     def __getitem__(self, idx, mu=None):
         # Set up foreground object
         if self.shapetype == 'circle':
-            center = 48*self.latents_values[idx,-2:] + np.array([8,8])
+            center = (0.75*self.pixels)*self.latents_values[idx,-2:] + np.array([1/8,1/8])*self.pixels
             ###TODO: translate latent scale to radius
             foreground = 255*self.circle2D(center)
         elif self.shapetype == 'dsprite':
@@ -87,7 +78,7 @@ class dSpriteBackgroundDataset(Dataset):
         
         # Set up background
         if mu is None:
-            mu = 2*np.random.randint(32,size=2)
+            mu = 2*np.random.randint(self.pixels/2,size=2)/self.pixels
         background = self.gaussian2D(mu)
         background = (255*background).reshape(background.shape+(1,))
 
@@ -103,20 +94,21 @@ class dSpriteBackgroundDataset(Dataset):
         return sample,latent
     
 
-    def arbitraryCircle(self,objx=None,objy=None,backx=None,backy=None):
+    def arbitraryCircle(self,objx=None,objy=None,backx=None,backy=None,radius=None):
        # Pick an arbitrary sample by directly addressing it
         if (objx is not None) and (objy is not None):
-            center = 48*np.array([objx,objy]) + np.array([8,8])
+            ###TODO: make sure pad scales with circle scale, so as to never hit the border
+            center = (0.75*self.pixels)*np.array([objx,objy]) + np.array([0.125,0.125])*self.pixels
             ###TODO: translate latent scale to radius
-            foreground = 255*self.circle2D(center)
+            foreground = 255*self.circle2D(center,radius)
             foreground = foreground.reshape((1,)+foreground.shape)
         else:
-            foreground = np.zeros((64,64,1))
+            foreground = np.zeros((self.pixels,self.pixels,1))
         if (backx is not None) and (backy is not None):
             background = self.gaussian2D(np.array([backx,backy]))
             background = (255*background).reshape(background.shape+(1,))
         else:
-            background = np.zeros((64,64,foreground.shape[2]))
+            background = np.zeros((self.pixels,self.pixels,foreground.shape[2]))
             
         # Combine foreground and background
         ims = np.clip(foreground+0.8*background,0,255).astype('uint8')
@@ -149,7 +141,7 @@ class dSpriteBackgroundDataset(Dataset):
         if back is not None:
             # Add background
             if type(back) is not np.ndarray:
-                background = self.gaussian2D(mu=2*np.random.randint(32,size=2))
+                background = 2*self.gaussian2D(mu=2*np.random.randint(self.pixels/s,size=2))/self.pixels
             else:
                 background = self.gaussian2D()
             background = 255*background.reshape((1,)+ims.shape[1:])
@@ -166,12 +158,14 @@ class dSpriteBackgroundDataset(Dataset):
     
     
     # Generate 2D gaussian backgrounds
-    def gaussian2D(self,mu=np.array([31,31]),Sigma=np.array([[1000, 0], [0, 1000]]),pos=None):
+    def gaussian2D(self,mu=np.array([0.5,0.5]),Sigma=np.array([[15, 0], [0, 15]]),pos=None):
         if pos is None:
-            gridx, gridy = np.meshgrid(np.arange(0,64),np.arange(0,64))
+            gridx, gridy = np.meshgrid(np.arange(0,self.pixels),np.arange(0,self.pixels))
             pos = np.empty(gridx.shape + (2,))
             pos[:,:,0] = gridx
             pos[:,:,1] = gridy
+        mu = mu*self.pixels
+        Sigma = Sigma*self.pixels
 
         # from https://scipython.com/blog/visualizing-the-bivariate-gaussian-distribution/
         #n = mu.shape[0]
@@ -189,9 +183,12 @@ class dSpriteBackgroundDataset(Dataset):
 
     
     # Generate a circle in a random position
-    def circle2D(self,center,radius=6,pos=None):
+    def circle2D(self,center,radius=None,pos=None):
+        if radius is None:
+            radius = 0.1
+        radius = radius*self.pixels
         if pos is None:
-            gridx, gridy = np.meshgrid(np.arange(0,64),np.arange(0,64))
+            gridx, gridy = np.meshgrid(np.arange(0,self.pixels),np.arange(0,self.pixels))
         z = np.square(gridx-center[0]) + np.square(gridy-center[1]) - radius
         # Threshold by radius
         z = (z<=np.square(radius)).astype('uint8')

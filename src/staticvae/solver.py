@@ -166,10 +166,7 @@ class Solver(object):
                 """ /begin of non-generic part (might need to be adapted for different models / data)"""
                 
                 # get current batch and push to device
-                img_batch, code_batch = samples.float().to(self.device), latents.float().to(self.device)
-                
-                # scale the coordinates such that both the circle and the gaussian center have the same scale
-                code_batch[:, 2:] = code_batch[:,2:] /  32
+                img_batch, code_batch = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
                 if self.modeltype == 'staticVAE':
