@@ -47,7 +47,7 @@ class dSpriteBackgroundDataset(Dataset):
         
         self.shapetype = shapetype
         self.imgs = data['imgs']*255
-        self.latents_values = data['latents_values']
+        self.latents_values = data['latents_values'].astype('float32')
         self.latents_classes = data['latents_classes']
         self.metadata = data['metadata'][()]
         self.latents_sizes = self.metadata['latents_sizes']
@@ -86,7 +86,7 @@ class dSpriteBackgroundDataset(Dataset):
         sample = np.clip(foreground+0.8*background,0,255).astype('uint8')
 
         # Output
-        latent = np.concatenate((self.latents_values[idx,-2:],mu.astype('float64')))
+        latent = np.concatenate((self.latents_values[idx,-2:],mu.astype('float32')))
 
         if self.transform:
             sample = self.transform(sample)
