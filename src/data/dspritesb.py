@@ -124,6 +124,7 @@ class dSpriteBackgroundDataset(Dataset):
             center = 48*np.array([objx,objy]) + np.array([8,8])
             ###TODO: translate latent scale to radius
             foreground = 255*self.circle2D(center)
+            foreground = foreground.reshape((1,)+foreground.shape)
         else:
             foreground = np.zeros((64,64,1))
         if (backx is not None) and (backy is not None):
@@ -133,7 +134,9 @@ class dSpriteBackgroundDataset(Dataset):
             background = np.zeros((64,64,foreground.shape[2]))
             
         # Combine foreground and background
-        return np.clip(foreground+0.8*background,0,255).astype('uint8')
+        ims = np.clip(foreground+0.8*background,0,255).astype('uint8')
+        
+        return self.transformArray(ims)
         
             
     def findDsprite(self,shape=None,scale=None,orientation=None,posX=None,posY=None,back=None):
