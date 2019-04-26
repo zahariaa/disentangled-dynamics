@@ -30,20 +30,6 @@ Possibly to-do
 ### seperate training and validation sets
     - CURRENTLY: no separation (overfitting / fitting to traing samples is likely)
     - e.g.: https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
-    
-### Minor (not necessary, but I think this would be more conventional)
-    - So far I have seen the output of the train_loader / dataset to be of this form:
-        
-        image, label = train_iter.next()
-        or, resp.:
-        
-        for image_batch, label_batch in train_loader:
-            do training...
-            
-        
-        Probably this would mean that, __getitem__() of dSpriteBackgroundDataset would "return image, label" instead of returning a dictionary (?)
-        
-    
 """
 
 class dSpriteBackgroundDataset(Dataset):
@@ -68,9 +54,6 @@ class dSpriteBackgroundDataset(Dataset):
             print('Finished')
 
         data = np.load(root,encoding='latin1')
-
-#         data = torch.from_numpy(data['imgs']).unsqueeze(1).float()
-#         train_kwargs = {'data_tensor':data}
         
         self.shapetype = shapetype
         self.imgs = data['imgs']*255
@@ -88,8 +71,10 @@ class dSpriteBackgroundDataset(Dataset):
             self.transform = transforms.Compose([transforms.ToPILImage(),
                                                  transform,
                                                  transforms.ToTensor()])
+    
     def __len__(self):
         return self.latents_bases[0]
+    
     
     def __getitem__(self, idx, mu=None):
         # Set up foreground object
@@ -202,6 +187,7 @@ class dSpriteBackgroundDataset(Dataset):
         # Normalized to peak at 1
         return fac/np.max(fac)
 
+    
     # Generate a circle in a random position
     def circle2D(self,center,radius=6,pos=None):
         if pos is None:
@@ -267,6 +253,7 @@ def demo(shapetype='dsprite',data_dir='../data/dsprites-dataset/'):
        print('Minibatch {}, batch size: {}'.format(i,samples.size())) 
        show_images_grid(samples)
        break
+
 
 if __name__ == "__main__":
     demo()
