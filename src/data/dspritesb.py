@@ -50,16 +50,16 @@ class dSpriteBackgroundDataset(Dataset):
     __getitem__ returns a 3D Tensor [n_channels, image_size_x, image_size_y] 
     """
     
-    def __init__(self, shapetype='dsprite', transform=None):
+    def __init__(self, shapetype='dsprite', transform=None, data_dir='../data/dsprites-dataset/'):
         """
         Args:
             shapetype (string): circle or dsprite
             transform (callable, optional): Optional transform to be applied
                 on a sample.
+            data_dir  (string): path to download(ed) dsprites dataset
         """
         # Load dataset
-        dset_dir = '../data/dsprites-dataset/'
-        root = os.path.join(dset_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+        root = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
         if not os.path.exists(root):
             import subprocess
             print('Now downloading dsprites-dataset')
@@ -176,8 +176,8 @@ def show_images_grid(samples):
 
 ### DEMO/TESTING
 
-def demo(shapetype='dsprite'):
-   dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype)
+def demo(shapetype='dsprite',data_dir='../data/dsprites-dataset/'):
+   dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype,data_dir=data_dir)
    
    idx = 300001
    print('One sample (#{}), addressed'.format(idx))
@@ -186,7 +186,8 @@ def demo(shapetype='dsprite'):
    plt.show()
    print('Latents: {}'.format(latent))
    
-   transformed_dataset = dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),shapetype=shapetype)
+   transformed_dataset = dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
+                                                  shapetype=shapetype,data_dir=data_dir)
    
    print('One rescaled sample (#{}), addressed'.format(idx))
    sample_trans,latent_trans = transformed_dataset[idx]
