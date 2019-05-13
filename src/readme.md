@@ -17,12 +17,13 @@ this directory for code implementation, testing, etc
 ###### 2) Experiments
 
 - train on random sample of (x,y) positions -> validate on unseen positions
-- biased distribution of training samples per label/class
-- non-linear mapping for positions
-- "elongated" ball (make it 5D latent)
 - different shapes
-- potentially different scales
 - dataset where circle has 0.5 luminance value
+- "elongated" ball (make it 5D latent)
+- potentially different scales
+(lower priority):
+- non-linear mapping for positions
+- biased distribution of training samples per label/class (more circles at the edge, fewer at center)
 
 ###### 3) new architectures
 
