@@ -22,6 +22,7 @@ this directory for code implementation, testing, etc
 - "elongated" ball (make it 5D latent)
 - different shapes
 - potentially different scales
+- dataset where circle has 0.5 luminance value
 
 ###### 3) new architectures
 
