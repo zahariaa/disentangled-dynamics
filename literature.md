@@ -18,3 +18,7 @@ not very well ordered yet
 - they use locally linear latent transitions at some point
 
 #### [Krishnan17: structured inference networks for nonlinear state space models](https://www.aaai.org/ocs/index.php/AAAI/AAAI17/paper/view/14215/14380)
+
+#### [Henaff19: Perceptual straightening of natural videos](http://www.nature.com/articles/s41593-019-0377-4)
+
+#### [Chung18: Classification and Geometry of GEneral Perceptual Manifolds](https://journals.aps.org/prx/abstract/10.1103/PhysRevX.8.031003)
