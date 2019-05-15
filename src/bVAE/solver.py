@@ -21,6 +21,7 @@ sys.path.append("..") # Adds higher directory to python modules path.
 from data.dspritesb import dSpriteBackgroundDataset
 from models import staticVAE32
 from models import loss_function, reconstruction_loss, kl_divergence
+from models import normalized_beta_from_beta, beta_from_normalized_beta
 
 
 class DataGather(object):
@@ -86,18 +87,26 @@ class Solver(object):
         # model name is used for checkpointing (and here for setting self.net)
         self.model = args.model
         
+        self.image_size = args.image_size
+        self.img_channels = args.img_channels
+        
         # beta for beta VAE
-        self.beta = args.beta
+        if args.beta_is_normalized:
+            self.beta_norm = args.beta
+            self.beta = beta_from_normalized_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)
+        else:
+            self.beta = args.beta
+            self.beta_norm = normalized_beta_from_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)            
         
         dataloaderparams = {'batch_size': args.batch_size,
                             'shuffle': args.shuffle,
                             'num_workers': args.num_workers}
 
         if args.dataset.lower() == 'dsprites_circle':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((self.image_size,self.image_size)),
                                             shapetype = 'circle'), **dataloaderparams)
         elif args.dataset.lower() == 'dsprites':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((self.image_size,self.image_size)),
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
@@ -108,7 +117,7 @@ class Solver(object):
             raise Exception('model "%s" unknown' % args.model)
             
         
-        self.net = net(n_latent = args.n_latent, img_channels = args.img_channels).to(self.device)
+        self.net = net(n_latent = args.n_latent, img_channels = self.img_channels).to(self.device)
         
         self.reconstruction_loss = reconstruction_loss
         self.kl_divergence = kl_divergence
@@ -132,7 +141,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_beta={}_{}_last'.format(self.model.lower(), self.beta, args.dataset.lower())
+        self.ckpt_name = '{}_betanorm={}_{}_last'.format(self.model.lower(), self.beta_norm, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -146,7 +155,7 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_beta={}_{}'.format(self.model.lower(), self.beta, args.dataset.lower())
+        self.trainstats_fname = '{}_betanorm={}_{}'.format(self.model.lower(), self.beta_norm, args.dataset.lower())
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         

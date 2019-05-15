@@ -69,6 +69,44 @@ def loss_function(recon_loss, total_kld, beta = 1):
 
     return beta_vae_loss
 
+def beta_from_normalized_beta(beta_normalized, N, M):
+    """
+       input:
+           beta_normalized
+           N: total number of values in each input image (pixels times channels)
+           M: number of latent dimensions
+    
+        computes beta = beta_normalized * N / M
+        
+        given the relationship:
+            
+            \beta_\text{norm} = \frac{\beta M}{N}
+            
+            from the Higgins, 2017, bVAE paper (p. 15)
+    """
+    
+    beta = beta_normalized * N / M
+    return beta
+
+def normalized_beta_from_beta(beta, N, M):
+    """
+       input:
+           beta
+           N: total number of values in each input image (pixels times channels)
+           M: number of latent dimensions
+    
+        computes beta_normalized = beta * latent_code_size / image_size
+        
+        given the relationship:
+            
+            \beta_\text{norm} = \frac{\beta M}{N}
+            
+            from the Higgins, 2017, bVAE paper (p. 15)
+    """
+    
+    beta_normalized = beta * M / N
+    return beta_normalized
+
 class staticVAE64(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 64x64x1
         from Table 1 in Higgins et al., 2017, ICLR

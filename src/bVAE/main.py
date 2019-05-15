@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
     
     parser.add_argument('--beta', default=1, type=float, help='beta for the beta VAE')
+    parser.add_argument('--beta_is_normalized', default=True, type=str2bool, help='flag whether input beta should be interpreted as normalized beta (default) or as unnormalized beta')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
