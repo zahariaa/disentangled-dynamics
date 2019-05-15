@@ -36,7 +36,7 @@ this directory for code implementation, testing, etc
 ###### 1) Stimulus generation
 
 
-- implementational details (in dsprites.py)
+- <del>implementational details (in dsprites.py)
 - I trained the decoder using the solver.py in supervised_encoderdecoder -> seems like the coordinates of the gaussian background blob have changed (added by BP 04/23/19)
 - more complex backgrounds
 - more object shapes / size / orientation
