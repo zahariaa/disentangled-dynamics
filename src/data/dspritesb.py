@@ -27,7 +27,7 @@ class dSpriteBackgroundDataset(Dataset):
     __getitem__ returns a 3D Tensor [n_channels, image_size_x, image_size_y] 
     """
     
-    def __init__(self, shapetype='dsprite', transform=None, data_dir='../data/dsprites-dataset/',pixels=64):
+    def __init__(self, idx=None, shapetype='dsprite', transform=None, data_dir='../data/dsprites-dataset/',pixels=64):
         """
         Args:
             shapetype (string): circle or dsprite
@@ -56,7 +56,11 @@ class dSpriteBackgroundDataset(Dataset):
             bxby = np.vstack((np.repeat(back,len(back)), np.tile(back,len(back))))
             fxbxby = np.vstack((np.repeat(forg,bxby.shape[1]), np.tile(bxby,[1,len(forg)])))
             self.latents_values = np.vstack((np.repeat(forg,fxbxby.shape[1]), np.tile(fxbxby,[1,len(forg)]))).T
-            self.latents_bases = np.shape(self.latents_values)[0]
+            self.latents_bases = [np.shape(self.latents_values)[0]]
+        
+        if idx is not None:
+            self.latents_values = self.latents_values[idx,:]
+            self.latents_bases[0] = np.shape(self.latents_values)[0]
         
         if transform is None:
             self.transform = transforms.Compose([transforms.ToPILImage(),
@@ -206,6 +210,32 @@ class dSpriteBackgroundDataset(Dataset):
         im = im.reshape(im.shape+(1,)) # add channel to end (assumes numpy ndarray)
 
         return im
+
+def loadDspriteFile(data_dir='../data/dsprites-dataset'):
+    root = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
+    if not os.path.exists(root):
+        import subprocess
+        print('Now downloading dsprites-dataset')
+        subprocess.call(['../data/./download_dsprites.sh'])
+        print('Finished')
+
+    return np.load(root,encoding='latin1',mmap_mode='r')
+    
+# Helper function to initialize partition of dsprite dataset into training and validation
+def partition_init(training_proportion=0.8,shapetype='dsprite', data_dir='../data/dsprites-dataset/'):
+    if shapetype == 'dsprite':
+        data = loadDspriteFile(data_dir)
+        metadata = data['metadata'][()]
+        totaldata = np.prod(metadata['latents_sizes'])
+    else:
+        totaldata = 16*16*32*32 # ASSUMPTION!
+
+    # Initialize random partitions of data
+    ridx = np.random.permutation(totaldata)
+    t = int(training_proportion*totaldata)
+    
+    partition = {'train': ridx[:t], 'validation': ridx[t:]}
+    return partition
     
 # Helper function to show images
 def show_images_grid(samples):
