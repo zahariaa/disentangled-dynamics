@@ -11,7 +11,7 @@ this directory for code implementation, testing, etc
 - Do reconstruction error differ between edges / inside / outside of the circle? (BP - in progress)
 - Do circle-reconstructions differ as a function of distance to the gaussian center? (BP - in progress)
 - Entangling/disentangling in the VAE (correlations in latent space)
-- Sweep through generative factors and plot/quantify effect in the latents (of the VAE)
+- Sweep through generative factors and plot/quantify effect in the latents (of the VAE) (AZ - in progress)
 - consider posterior variance as well, i.e., \sigma(x)
 
 ###### 2) Experiments
