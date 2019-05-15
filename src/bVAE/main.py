@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
     parser.add_argument('--batch_size', default=64, type=int, help='batch size')
     parser.add_argument('--shuffle', default=True, type=str2bool, help='shuffle training data')
-    parser.add_argument('--max_iter', default=100000, type=int, help='number of training iterations')
+    parser.add_argument('--max_iter', default=500000, type=int, help='number of training iterations')
 
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
@@ -66,12 +66,12 @@ if __name__ == "__main__":
     parser.add_argument('--save_output', default=True, type=str2bool, help='save traverse images and gif')
     parser.add_argument('--output_dir', default='outputs', type=str, help='output directory')
     """
-    parser.add_argument('--trainstats_gather_step', default=100, type=int, help='numer of iterations after which training stats are gathered and stored')
+    parser.add_argument('--trainstats_gather_step', default=500, type=int, help='numer of iterations after which training stats are gathered and stored')
     parser.add_argument('--trainstats_dir', default='trainstats', type=str, help='training statistics directory')
 
-    parser.add_argument('--display_step', default=500, type=int, help='number of iterations after which loss data is printed and visdom is updated')
+    parser.add_argument('--display_step', default=1000, type=int, help='number of iterations after which loss data is printed and visdom is updated')
 
-    parser.add_argument('--save_step', default=1000, type=int, help='number of iterations after which a checkpoint is saved')
+    parser.add_argument('--save_step', default=2000, type=int, help='number of iterations after which a checkpoint is saved')
 
     parser.add_argument('--ckpt_dir', default='checkpoints', type=str, help='checkpoint directory')
     parser.add_argument('--load_last_checkpoint', default=True, type=str2bool, help='load previous checkpoint if it exists')
