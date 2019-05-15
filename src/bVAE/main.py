@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
     
-    parser.add_argument('--beta', default=1, type=int, help='beta for the beta VAE')
+    parser.add_argument('--beta', default=1, type=float, help='beta for the beta VAE')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
