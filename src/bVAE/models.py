@@ -25,20 +25,52 @@ def kaiming_init(m):
             m.bias.data.fill_(0)
 
 
-# Reconstruction + KL divergence losses summed over all elements and batch
-def loss_function(recon_x, x, mu, logvar, flattened_image_size = 1024):
-    """ 
-        from https://github.com/pytorch/examples/blob/master/vae/main.py
+def reconstruction_loss(x, x_recon, distribution='gaussian'):
     """
-    BCE = nn.functional.binary_cross_entropy(recon_x, x.view(-1, flattened_image_size), reduction='sum')
+     from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
+     
+    """
+    
+    batch_size = x.size(0)
+    assert batch_size != 0
+    
+    if distribution == 'bernoulli':
+        recon_loss = nn.functional.binary_cross_entropy_with_logits(x_recon, x, size_average=False).div(batch_size)
+    elif distribution == 'gaussian':
+        x_recon = nn.functional.sigmoid(x_recon)
+        recon_loss = nn.functional.mse_loss(x_recon, x, size_average=False).div(batch_size)
+    else:
+        recon_loss = None
+        
+    return recon_loss    
 
-    # see Appendix B from VAE paper:
-    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-    # https://arxiv.org/abs/1312.6114
-    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+def kl_divergence(mu, logvar):
+    """
+     from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
+     
+    """    
+    batch_size = mu.size(0)
+    assert batch_size != 0
+    if mu.data.ndimension() == 4:
+        mu = mu.view(mu.size(0), mu.size(1))
+    if logvar.data.ndimension() == 4:
+        logvar = logvar.view(logvar.size(0), logvar.size(1))
 
-    return BCE + KLD
+    klds = -0.5*(1 + logvar - mu.pow(2) - logvar.exp())
+    total_kld = klds.sum(1).mean(0, True)
+    dimension_wise_kld = klds.mean(0)
+    mean_kld = klds.mean(1).mean(0, True)
+    
+    return total_kld, dimension_wise_kld, mean_kld
+
+def loss_function(recon_x, x, mu, logvar, beta = 1):
+    
+    recon_loss = reconstruction_loss(x, recon_x, distribution = 'gaussian')
+    total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
+    
+    beta_vae_loss = recon_loss + beta*total_kld
+
+    return beta_vae_loss
 
 class staticVAE64(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 64x64x1
