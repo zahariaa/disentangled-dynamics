@@ -108,11 +108,13 @@ class dSpriteBackgroundDataset(Dataset):
             foreground = foreground.reshape((1,)+foreground.shape)
         else:
             foreground = np.zeros((self.pixels,self.pixels,1))
+            foreground = foreground.reshape((1,)+foreground.shape)
         if (backx is not None) and (backy is not None):
             background = self.gaussian2D(np.array([backx,backy]))
-            background = (255*background).reshape(background.shape+(1,))
+            background = (255*background).reshape((1,)+background.shape+(1,))
         else:
-            background = np.zeros((self.pixels,self.pixels,foreground.shape[2]))
+            background = np.zeros((self.pixels,self.pixels,1))
+            background = (255*background).reshape((1,)+background.shape)
             
         # Combine foreground and background
         ims = np.clip(foreground+0.8*background,0,255).astype('uint8')
