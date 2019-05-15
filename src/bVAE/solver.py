@@ -8,12 +8,10 @@ Created on Tue Apr  9 13:22:30 2019
 
 
 import torch
-from torch.nn import MSELoss
 from torch.optim import RMSprop
 from torchvision import transforms
 
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import os
 import pickle
 
@@ -22,7 +20,7 @@ sys.path.append("..") # Adds higher directory to python modules path.
 
 from data.dspritesb import dSpriteBackgroundDataset
 from models import staticVAE32
-from models import loss_function
+from models import loss_function, reconstruction_loss, kl_divergence
 
 
 class DataGather(object):
@@ -88,6 +86,9 @@ class Solver(object):
         # model name is used for checkpointing (and here for setting self.net)
         self.model = args.model
         
+        # beta for beta VAE
+        self.beta = args.beta
+        
         dataloaderparams = {'batch_size': args.batch_size,
                             'shuffle': args.shuffle,
                             'num_workers': args.num_workers}
@@ -108,6 +109,10 @@ class Solver(object):
             
         
         self.net = net(n_latent = args.n_latent, img_channels = args.img_channels).to(self.device)
+        
+        self.reconstruction_loss = reconstruction_loss
+        self.kl_divergence = kl_divergence
+        
         self.loss = loss_function
 
         self.lr = args.lr
@@ -127,7 +132,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_{}_last'.format(self.model.lower(), args.dataset.lower())
+        self.ckpt_name = '{}_beta={}_{}_last'.format(self.model.lower(), self.beta, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -141,7 +146,7 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_{}'.format(self.model.lower(), args.dataset.lower())
+        self.trainstats_fname = '{}_beta={}_{}'.format(self.model.lower(), self.beta, args.dataset.lower())
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         
@@ -152,8 +157,13 @@ class Solver(object):
         pbar.update(self.global_iter)
         
         out = False        
-        running_loss_trainstats = 0.0 # running loss for the trainstats (gathered and pickeled)
+
         running_loss_terminal_display = 0.0 # running loss for the trainstats (gathered and pickeled)
+
+        running_loss_trainstats = 0.0 # running loss for the trainstats (gathered and pickeled)
+        running_total_kld = 0.0
+        running_dim_wise_kld = 0.0
+        running_mean_kld = 0.0
         
         while not out:
             for [samples,latents] in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
@@ -175,22 +185,37 @@ class Solver(object):
 
                                     
                 predicted_batch, mu, logvar = self.net(input_batch)
-                actLoss = self.loss(predicted_batch, output_batch, mu, logvar)
+                
+                recon_loss = self.reconstruction_loss(x = output_batch, x_recon = predicted_batch)
+                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, logvar)
+                
+                actLoss = self.loss(recon_loss=recon_loss, total_kld=total_kld, beta = self.beta)
                 
                 actLoss.backward()
                 self.optim.step()                
 
-                running_loss_trainstats += actLoss.item()
                 running_loss_terminal_display += actLoss.item()
-
+                
+                running_loss_trainstats += actLoss.item()
+                running_total_kld += total_kld
+                running_dim_wise_kld += dimension_wise_kld
+                running_mean_kld += mean_kld            
+                
                 # update gather object with training information
                 if self.global_iter % self.trainstats_gather_step == 0:
                     running_loss_trainstats = running_loss_trainstats / self.trainstats_gather_step
                     self.gather.insert(iter=self.global_iter,
                                        recon_loss=running_loss_trainstats,
                                        target = output_batch[0].detach().cpu().numpy(),
-                                       reconstructed = predicted_batch[0].detach().cpu().numpy(),)
+                                       reconstructed = predicted_batch[0].detach().cpu().numpy(),
+                                       total_kld = running_total_kld,
+                                       dim_wise_kld = running_dim_wise_kld,
+                                       mean_kld = running_mean_kld,
+                                       )
                     running_loss_trainstats = 0.0
+                    running_total_kld = 0.0
+                    running_dim_wise_kld = 0.0
+                    running_mean_kld = 0.0                    
                 
                 """ /end of non-generic part"""
 

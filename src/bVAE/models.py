@@ -63,10 +63,7 @@ def kl_divergence(mu, logvar):
     
     return total_kld, dimension_wise_kld, mean_kld
 
-def loss_function(recon_x, x, mu, logvar, beta = 1):
-    
-    recon_loss = reconstruction_loss(x, recon_x, distribution = 'gaussian')
-    total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
+def loss_function(recon_loss, total_kld, beta = 1):
     
     beta_vae_loss = recon_loss + beta*total_kld
 
