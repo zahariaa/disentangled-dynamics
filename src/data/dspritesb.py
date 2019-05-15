@@ -111,11 +111,13 @@ class dSpriteBackgroundDataset(Dataset):
             foreground = foreground.reshape((1,)+foreground.shape)
         else:
             foreground = np.zeros((self.pixels,self.pixels,1))
+            foreground = foreground.reshape((1,)+foreground.shape)
         if (backx is not None) and (backy is not None):
             background = self.gaussian2D(np.array([backx,backy]))
-            background = (255*background).reshape(background.shape+(1,))
+            background = (255*background).reshape((1,)+background.shape+(1,))
         else:
-            background = np.zeros((self.pixels,self.pixels,foreground.shape[2]))
+            background = np.zeros((self.pixels,self.pixels,1))
+            background = (255*background).reshape((1,)+background.shape)
             
         # Combine foreground and background
         ims = np.clip(foreground+0.8*background,0,255).astype('uint8')
@@ -210,6 +212,49 @@ class dSpriteBackgroundDataset(Dataset):
         im = im.reshape(im.shape+(1,)) # add channel to end (assumes numpy ndarray)
 
         return im
+    
+    def getCircleSegmentationMasks(self, objx, objy, dr = .05, radius = .1, thresh = .05):
+        """ 
+            def getCircleSegmentationMasks(objx, objy, dr = .05, radius = .1, thresh = .05):
+                
+            returns a segmentation of the image:
+                objectMask: mask corresponding to the circle object
+                objectEdgeMask: mask corresponding to the edge of the circle object
+                insideObjectMask: mask corresponding to the inner part of the circle (in the object but not part of the objectEdgeMask)
+                backgroundMask: mask of the rest (not in the objectMask or the objectEdgeMask)
+                
+            inputs:
+                - dr: controls by how much smaller (absolute) the inner circle is than the actual circle object
+                - radius: is the radius of the circle object. Currently this is set to 0.1 (as it is handcoded in the self.circle2D function)
+                - thresh: threshold above which a pixel is considered "on" (part of the object)
+                
+                Displaying example:
+                    ds = dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),shapetype = 'circle')
+                    x = ds.arbitraryCircle(objx=.6, objy=.2, backx = .3, backy = .1)
+                    backgroundMask, objectMask, insideObjectMask, objectEdgeMask = ds.getCircleSegmentationMasks(objx,objy)
+                        
+                    _,ax = plt.subplots(1,5, figsize = (12, 3))
+                    ax[0].imshow(x.squeeze())
+                    ax[1].imshow(backgroundMask.squeeze())
+                    ax[2].imshow(objectMask.squeeze())
+                    ax[3].imshow(insideObjectMask.squeeze())
+                    ax[4].imshow(objectEdgeMask.squeeze())
+            
+            (for circles only now -> possibly in the future this would work for arbirary shapes when replacing radius with scale parameter)
+        """
+        objectMask = self.arbitraryCircle(objx, objy, backx = None, backy = None, radius = radius) > thresh
+        smallerMask = self.arbitraryCircle(objx, objy, backx = None, backy = None, radius = radius - dr) > thresh        
+        # currently biggerMask is equal to objectMask. However, this could be changed to include more of the outsdie of the object by changing the radius here.
+        biggerMask = self.arbitraryCircle(objx, objy, backx = None, backy = None, radius = radius) > thresh
+        
+        objectEdgeMask = np.logical_xor(biggerMask, smallerMask)
+        
+        insideObjectMask = objectMask
+        insideObjectMask[objectEdgeMask] = 0
+        
+        backgroundMask = ~np.logical_or(objectEdgeMask, insideObjectMask)
+        
+        return backgroundMask, objectMask, insideObjectMask, objectEdgeMask        
 
 def loadDspriteFile(data_dir='../data/dsprites-dataset'):
     root = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
@@ -236,6 +281,7 @@ def partition_init(training_proportion=0.8,shapetype='dsprite', data_dir='../dat
     
     partition = {'train': ridx[:t], 'validation': ridx[t:]}
     return partition
+
     
 # Helper function to show images
 def show_images_grid(samples):
