@@ -39,8 +39,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='beta VAE')
 
-    parser.add_argument('--model', default='bVAE32', type=str, help='which model to train (bVAE32, bVAE64))')
-
+    parser.add_argument('--model', default='staticVAE32', type=str, help='which model to train (staticVAE32, staticVAE64))')
+    
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
     parser.add_argument('--batch_size', default=64, type=int, help='batch size')
