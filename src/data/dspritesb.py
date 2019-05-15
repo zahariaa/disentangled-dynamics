@@ -35,25 +35,28 @@ class dSpriteBackgroundDataset(Dataset):
                 on a sample.
             data_dir  (string): path to download(ed) dsprites dataset
         """
-        # Load dataset
-        root = os.path.join(data_dir, 'dsprites_ndarray_co1sh3sc6or40x32y32_64x64.npz')
-        if not os.path.exists(root):
-            import subprocess
-            print('Now downloading dsprites-dataset')
-            subprocess.call(['../data/./download_dsprites.sh'])
-            print('Finished')
-
-        data = np.load(root,encoding='latin1')
-        
         self.shapetype = shapetype
-        self.imgs = data['imgs']*255
-        self.latents_values = data['latents_values'].astype('float32')
-        self.latents_classes = data['latents_classes']
-        self.metadata = data['metadata'][()]
-        self.latents_sizes = self.metadata['latents_sizes']
-        self.latents_bases = np.concatenate((self.latents_sizes[::-1].cumprod()[::-1][1:],
-                                np.array([1,])))
         self.pixels = pixels
+        # Load dataset
+        if shapetype == 'dsprite':
+            data = loadDspriteFile(data_dir)
+
+            self.imgs = data['imgs']*255
+            self.latents_values = data['latents_values'].astype('float32')
+            self.latents_classes = data['latents_classes']
+            metadata = data['metadata'][()]
+            self.latents_sizes = metadata['latents_sizes']
+            self.latents_bases = np.concatenate((self.latents_sizes[::-1].cumprod()[::-1][1:],
+                                    np.array([1,])))
+        elif shapetype == 'circle':
+            # Construct latent values
+            forg = np.linspace(0,1,32,dtype='float32')
+            back = np.linspace(0,1,16,dtype='float32')
+            # THIS ASSUMES A SINGLE SHAPE AND A SINGLE SCALE
+            bxby = np.vstack((np.repeat(back,len(back)), np.tile(back,len(back))))
+            fxbxby = np.vstack((np.repeat(forg,bxby.shape[1]), np.tile(bxby,[1,len(forg)])))
+            self.latents_values = np.vstack((np.repeat(forg,fxbxby.shape[1]), np.tile(fxbxby,[1,len(forg)]))).T
+            self.latents_bases = np.shape(self.latents_values)[0]
         
         if transform is None:
             self.transform = transforms.Compose([transforms.ToPILImage(),
@@ -64,11 +67,7 @@ class dSpriteBackgroundDataset(Dataset):
                                                  transforms.ToTensor()])
     
     def __len__(self):
-        if self.shapetype == 'circle':
-            # THIS ASSUMES A SINGLE SHAPE AND A SINGLE SCALE
-            return self.latents_bases[2]
-        else:
-            return self.latents_bases[0]
+        return self.latents_bases[0]
     
     
     def __getitem__(self, idx, mu=None):
@@ -230,7 +229,7 @@ def show_images_grid(samples):
 def demo(shapetype='dsprite',data_dir='../data/dsprites-dataset/'):
    dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype,data_dir=data_dir)
    
-   idx = 300001
+   idx = 30001
    print('One sample (#{}), addressed'.format(idx))
    sample,latent = dSpritesB[idx]
    h = plt.imshow(transforms.ToPILImage()(sample),cmap=plt.cm.gray)
