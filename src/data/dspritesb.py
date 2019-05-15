@@ -54,8 +54,8 @@ class dSpriteBackgroundDataset(Dataset):
             back = np.linspace(0,1,16,dtype='float32')
             # THIS ASSUMES A SINGLE SHAPE AND A SINGLE SCALE
             bxby = np.vstack((np.repeat(back,len(back)), np.tile(back,len(back))))
-            fxbxby = np.vstack((np.repeat(forg,bxby.shape[1]), np.tile(bxby,[1,len(forg)])))
-            self.latents_values = np.vstack((np.repeat(forg,fxbxby.shape[1]), np.tile(fxbxby,[1,len(forg)]))).T
+            fybxby = np.vstack((np.repeat(forg,bxby.shape[1]), np.tile(bxby,[1,len(forg)])))
+            self.latents_values = np.vstack((np.repeat(forg,fybxby.shape[1]), np.tile(fybxby,[1,len(forg)]))).T
             self.latents_bases = [np.shape(self.latents_values)[0]]
         
         if idx is not None:
