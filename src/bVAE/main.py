@@ -37,9 +37,9 @@ def main(args):
     net.train()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='supervised encoder')
+    parser = argparse.ArgumentParser(description='beta VAE')
 
-    parser.add_argument('--model', default='staticVAE32', type=str, help='which model to train (staticVAE32, staticVAE64))')
+    parser.add_argument('--model', default='bVAE32', type=str, help='which model to train (bVAE32, bVAE64))')
 
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
@@ -50,6 +50,8 @@ if __name__ == "__main__":
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
+    
+    parser.add_argument('--beta', default=1, type=int, help='beta for the beta VAE')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
