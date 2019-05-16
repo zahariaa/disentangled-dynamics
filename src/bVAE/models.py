@@ -25,7 +25,7 @@ def kaiming_init(m):
             m.bias.data.fill_(0)
 
 
-def reconstruction_loss(x, x_recon, distribution='gaussian'):
+def reconstruction_loss(x, x_recon, distribution='bernoulli'):
     """
      from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
      
