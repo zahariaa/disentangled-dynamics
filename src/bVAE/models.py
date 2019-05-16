@@ -35,7 +35,7 @@ def reconstruction_loss(x, x_recon, distribution='bernoulli'):
     assert batch_size != 0
     
     if distribution == 'bernoulli':
-        recon_loss = nn.functional.binary_cross_entropy_with_logits(x_recon, x, size_average=False).div(batch_size)
+        recon_loss = nn.functional.binary_cross_entropy(x_recon, x, size_average=False).div(batch_size)
     elif distribution == 'gaussian':
         x_recon = nn.functional.sigmoid(x_recon)
         recon_loss = nn.functional.mse_loss(x_recon, x, size_average=False).div(batch_size)
