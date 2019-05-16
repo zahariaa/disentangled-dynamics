@@ -35,10 +35,10 @@ def reconstruction_loss(x, x_recon, distribution='bernoulli'):
     assert batch_size != 0
     
     if distribution == 'bernoulli':
-        recon_loss = nn.functional.binary_cross_entropy(x_recon, x, size_average=False).div(batch_size)
+        recon_loss = nn.functional.binary_cross_entropy(x_recon, x, reduction='sum').div(batch_size)
     elif distribution == 'gaussian':
         x_recon = nn.functional.sigmoid(x_recon)
-        recon_loss = nn.functional.mse_loss(x_recon, x, size_average=False).div(batch_size)
+        recon_loss = nn.functional.mse_loss(x_recon, x, reduction='sum').div(batch_size)
     else:
         recon_loss = None
         
@@ -57,9 +57,9 @@ def kl_divergence(mu, logvar):
         logvar = logvar.view(logvar.size(0), logvar.size(1))
 
     klds = -0.5*(1 + logvar - mu.pow(2) - logvar.exp())
-    total_kld = klds.sum(1).mean(0, True)
+    total_kld = klds.sum(1).mean(0, keepdim=True)
     dimension_wise_kld = klds.mean(0)
-    mean_kld = klds.mean(1).mean(0, True)
+    mean_kld = klds.mean(1).mean(0, keepdim=True)
     
     return total_kld, dimension_wise_kld, mean_kld
 

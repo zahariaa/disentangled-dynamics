@@ -46,6 +46,7 @@ class DataGather(object):
 
     def get_empty_data_dict(self):
         return dict(iter=[],
+                    total_loss=[],
                     recon_loss=[],
                     total_kld=[],
                     dim_wise_kld=[],
@@ -96,7 +97,7 @@ class Solver(object):
             self.beta = beta_from_normalized_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)
         else:
             self.beta = args.beta
-            self.beta_norm = normalized_beta_from_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)            
+            self.beta_norm = normalized_beta_from_beta(self.beta,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)            
         
         dataloaderparams = {'batch_size': args.batch_size,
                             'shuffle': args.shuffle,
@@ -170,6 +171,8 @@ class Solver(object):
         running_loss_terminal_display = 0.0 # running loss for the trainstats (gathered and pickeled)
 
         running_loss_trainstats = 0.0 # running loss for the trainstats (gathered and pickeled)
+        """ /begin of non-generic part (might need to be adapted for different models / data)"""
+        running_recon_loss_trainstats = 0.0
         running_total_kld = 0.0
         running_dim_wise_kld = 0.0
         running_mean_kld = 0.0
@@ -180,12 +183,10 @@ class Solver(object):
                 self.global_iter += 1
                 pbar.update(1)
                 
-                self.net.zero_grad()
-                
-                """ /begin of non-generic part (might need to be adapted for different models / data)"""
-                
+                self.net.zero_grad()               
+               
                 # get current batch and push to device
-                img_batch, code_batch = samples.to(self.device), latents.to(self.device)
+                img_batch, _ = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
                 if self.modeltype == 'staticVAE':
@@ -206,22 +207,29 @@ class Solver(object):
                 running_loss_terminal_display += actLoss.item()
                 
                 running_loss_trainstats += actLoss.item()
-                running_total_kld += total_kld
-                running_dim_wise_kld += dimension_wise_kld
-                running_mean_kld += mean_kld            
+                running_recon_loss_trainstats += recon_loss.item()
+                running_total_kld += total_kld.item()
+                running_dim_wise_kld += dimension_wise_kld.cpu().detach().numpy()
+                running_mean_kld += mean_kld.item()
                 
                 # update gather object with training information
                 if self.global_iter % self.trainstats_gather_step == 0:
                     running_loss_trainstats = running_loss_trainstats / self.trainstats_gather_step
+                    running_recon_loss_trainstats = running_recon_loss_trainstats / self.trainstats_gather_step
+                    running_total_kld = running_total_kld / self.trainstats_gather_step
+                    running_dim_wise_kld = running_dim_wise_kld / self.trainstats_gather_step
+                    running_mean_kld = running_mean_kld / self.trainstats_gather_step
                     self.gather.insert(iter=self.global_iter,
-                                       recon_loss=running_loss_trainstats,
+                                       total_loss=running_loss_trainstats,
                                        target = output_batch[0].detach().cpu().numpy(),
                                        reconstructed = predicted_batch[0].detach().cpu().numpy(),
+                                       recon_loss=running_recon_loss_trainstats,
                                        total_kld = running_total_kld,
                                        dim_wise_kld = running_dim_wise_kld,
                                        mean_kld = running_mean_kld,
                                        )
                     running_loss_trainstats = 0.0
+                    running_recon_loss_trainstats = 0.0
                     running_total_kld = 0.0
                     running_dim_wise_kld = 0.0
                     running_mean_kld = 0.0                    
