@@ -13,14 +13,13 @@ from torch.optim import RMSprop
 from torchvision import transforms
 
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import os
 import pickle
 
 import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 
-from data.dspritesb import dSpriteBackgroundDataset
+from data.dspritesb import dSpriteBackgroundDataset, partition_init
 from models.encoders import encoderBVAE_like
 from models.decoders import decoderBVAE_like, decoderBVAE_like_wElu, decoderBVAE_like_wElu_SigmoidOutput
 
@@ -86,19 +85,22 @@ class Solver(object):
         """
         
         # model name is used for checkpointing (and here for setting self.net)
-        self.model = args.model
-        
+        self.model = args.model        
+        self.proportion_train_partition = args.proportion_train_partition
+
         dataloaderparams = {'batch_size': args.batch_size,
                             'shuffle': args.shuffle,
                             'num_workers': args.num_workers}
 
         if args.dataset.lower() == 'dsprites_circle':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
+            partition = partition_init(self.proportion_train_partition,shapetype='circle')        
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(partition['train'], transform=transforms.Resize((32,32)),
                                             shapetype = 'circle'), **dataloaderparams)
         elif args.dataset.lower() == 'dsprites':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((32,32)),
+            partition = partition_init(self.proportion_train_partition,shapetype='dsprites')
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(partition['train'], transform=transforms.Resize((32,32)),
                                             shapetype = 'dsprite'), **dataloaderparams)
-        
+            
         
         if args.model.lower() == "encoderbvae_like":
             net = encoderBVAE_like
@@ -136,7 +138,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_{}_last'.format(self.model.lower(), args.dataset.lower())
+        self.ckpt_name = '{}_{}_trainPartitionProportion={}_last'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
         
         
         self.save_step = args.save_step
@@ -150,10 +152,15 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_{}'.format(self.model.lower(), args.dataset.lower())
+        self.trainstats_fname = '{}_{}_trainPartitionProportion={}'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
-        
+        # store the partition of the data into train and validation (for later evaluations)        
+        self.partition_save_filename = '{}_{}_trainPartitionProportion={}_partition'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
+        file_path = os.path.join(self.ckpt_dir, self.partition_save_filename)
+        with open(file_path, mode='wb+') as f:
+            torch.save(partition, f)
+            print("=> saved partition '{}'".format(file_path))        
         
     def train(self):
         
