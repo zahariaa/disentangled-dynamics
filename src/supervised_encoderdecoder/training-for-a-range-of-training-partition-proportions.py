@@ -14,4 +14,4 @@ proportions = np.linspace(.2,1.,4)
 for ii,prop in enumerate(proportions):
     prop_command = '--proportion_train_partition=%0.2f' % prop    
     print(prop_command)
-    subprocess.call(['python', 'main.py', '--model=decoderBVAE_like_wElu_SigmoidOutput', prop_command, '--max_iter=200000'])
+    subprocess.call(['python', 'main.py', '--model=decoderBVAE_like_wElu_SigmoidOutput', prop_command, '--max_iter=200000', '--dimensionwise_partition=True'])

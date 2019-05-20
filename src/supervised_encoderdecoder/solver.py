@@ -88,16 +88,18 @@ class Solver(object):
         self.model = args.model        
         self.proportion_train_partition = args.proportion_train_partition
 
+        self.dimensionwise_partition = args.dimensionwise_partition
+
         dataloaderparams = {'batch_size': args.batch_size,
                             'shuffle': args.shuffle,
                             'num_workers': args.num_workers}
 
         if args.dataset.lower() == 'dsprites_circle':
-            partition = partition_init(self.proportion_train_partition,shapetype='circle')        
+            partition = partition_init(self.proportion_train_partition,dimensionwise_partition = self.dimensionwise_partition, shapetype='circle')        
             self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(partition['train'], transform=transforms.Resize((32,32)),
                                             shapetype = 'circle'), **dataloaderparams)
         elif args.dataset.lower() == 'dsprites':
-            partition = partition_init(self.proportion_train_partition,shapetype='dsprites')
+            partition = partition_init(self.proportion_train_partition,dimensionwise_partition = self.dimensionwise_partition, shapetype='dsprites')
             self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(partition['train'], transform=transforms.Resize((32,32)),
                                             shapetype = 'dsprite'), **dataloaderparams)
             
@@ -132,13 +134,17 @@ class Solver(object):
         self.max_iter = args.max_iter
         self.global_iter = 0
         
+        filepartPartitioningScheme = ''
+        if self.dimensionwise_partition:
+            filepartPartitioningScheme = '_dimwise'
+        
         # prepare checkpointing
         if not os.path.isdir(args.ckpt_dir):
             os.mkdir(args.ckpt_dir)
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_{}_trainPartitionProportion={}_last'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
+        self.ckpt_name = '{}_{}_trainPartitionProportion={}{}_last'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition, filepartPartitioningScheme)
         
         
         self.save_step = args.save_step
@@ -152,11 +158,11 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_{}_trainPartitionProportion={}'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
+        self.trainstats_fname = '{}_{}_trainPartitionProportion={}{}'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition, filepartPartitioningScheme)
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         # store the partition of the data into train and validation (for later evaluations)        
-        self.partition_save_filename = '{}_{}_trainPartitionProportion={}_partition'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition)
+        self.partition_save_filename = '{}_{}_trainPartitionProportion={}{}_partition'.format(self.model.lower(), args.dataset.lower(),self.proportion_train_partition, filepartPartitioningScheme)
         file_path = os.path.join(self.ckpt_dir, self.partition_save_filename)
         with open(file_path, mode='wb+') as f:
             torch.save(partition, f)
