@@ -9,7 +9,7 @@ Created on Fri May 17 12:46:23 2019
 import numpy as np
 import subprocess
 
-proportions = np.linspace(.2,.8,4)
+proportions = np.linspace(.2,1.,4)
 
 for ii,prop in enumerate(proportions):
     prop_command = '--proportion_train_partition=%0.2f' % prop    
