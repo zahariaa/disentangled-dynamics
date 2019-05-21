@@ -47,6 +47,9 @@ if __name__ == "__main__":
     parser.add_argument('--shuffle', default=True, type=str2bool, help='shuffle training data')
     parser.add_argument('--max_iter', default=100000, type=int, help='number of training iterations')
 
+    parser.add_argument('--proportion_train_partition', default=1.0, type=float, help='proportion of training partition (default = 1.0)')
+    parser.add_argument('--dimensionwise_partition', default=True, type=str2bool, help='should partitioning scheme be applied by dimension (True, default) or to the full dataset, i.e., sample-wise')
+    
     parser.add_argument('--lr', default=1e-4, type=float, help='learning rate')
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
@@ -55,6 +58,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')
     parser.add_argument('--image_size', default=32, type=int, help='image size. now only (32,32) is supported')
     parser.add_argument('--num_workers', default=6, type=int, help='dataloader num_workers')
+    
 
     """
     parser.add_argument('--viz_on', default=True, type=str2bool, help='enable visdom visualization')

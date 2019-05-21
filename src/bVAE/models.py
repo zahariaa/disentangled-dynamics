@@ -25,7 +25,7 @@ def kaiming_init(m):
             m.bias.data.fill_(0)
 
 
-def reconstruction_loss(x, x_recon, distribution='bernoulli'):
+def reconstruction_loss(x, x_recon, distribution='gaussian'):
     """
      from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
      
@@ -37,7 +37,7 @@ def reconstruction_loss(x, x_recon, distribution='bernoulli'):
     if distribution == 'bernoulli':
         recon_loss = nn.functional.binary_cross_entropy(x_recon, x, reduction='sum').div(batch_size)
     elif distribution == 'gaussian':
-        x_recon = nn.functional.sigmoid(x_recon)
+        #x_recon = nn.functional.sigmoid(x_recon)
         recon_loss = nn.functional.mse_loss(x_recon, x, reduction='sum').div(batch_size)
     else:
         recon_loss = None

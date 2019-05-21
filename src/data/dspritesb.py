@@ -269,19 +269,61 @@ def loadDspriteFile(data_dir='../data/dsprites-dataset'):
     return np.load(root,encoding='latin1',mmap_mode='r')
     
 # Helper function to initialize partition of dsprite dataset into training and validation
-def partition_init(training_proportion=0.8,shapetype='dsprite', data_dir='../data/dsprites-dataset/'):
-    if shapetype == 'dsprite':
-        data = loadDspriteFile(data_dir)
-        metadata = data['metadata'][()]
-        totaldata = np.prod(metadata['latents_sizes'])
-    else:
-        totaldata = 16*16*32*32 # ASSUMPTION!
-
-    # Initialize random partitions of data
-    ridx = np.random.permutation(totaldata)
-    t = int(training_proportion*totaldata)
+def partition_init(training_proportion=0.8,dimensionwise_partition=True,shapetype='dsprite', data_dir='../data/dsprites-dataset/'):
     
-    partition = {'train': ridx[:t], 'validation': ridx[t:]}
+    if not dimensionwise_partition:
+        if shapetype == 'dsprite':
+            data = loadDspriteFile(data_dir)
+            metadata = data['metadata'][()]
+            totaldata = np.prod(metadata['latents_sizes'])
+        else:
+            totaldata = 16*16*32*32 # ASSUMPTION!
+    
+        # Initialize random partitions of data
+        ridx = np.random.permutation(totaldata)
+        t = int(training_proportion*totaldata)
+        
+        partition = {'train': ridx[:t], 'validation': ridx[t:]}
+    
+    else: # apply proportion to unique values in each dimension (-> proportion of actual samples is therefore much lower)
+        if shapetype == 'dsprite':
+            raise Exception('dimensionwise_partition for shapetype dSprite is not implemented')
+        elif shapetype == 'circle':
+            ds = dSpriteBackgroundDataset(shapetype = 'circle')
+            
+            latents_values = ds.latents_values
+            
+            datadimvals = list()
+            dimwise_train_idx = list()
+            dimwise_val_idx = list()
+            dimwise_train_vals = list()
+            dimwise_val_vals = list()
+            
+            for ii in range(latents_values.shape[1]):
+                datadimvals.append(np.unique(latents_values[:,ii]))
+                n_train = np.round(training_proportion * len(datadimvals[ii]))
+                
+                dimwise_train_idx.append(np.sort(np.random.choice(len(datadimvals[ii]), int(n_train), replace = False)))
+                dimwise_train_vals.append(datadimvals[ii][dimwise_train_idx[ii]])
+                
+                dimwise_val_idx.append(np.where(np.isin(np.arange(len(datadimvals[ii])), dimwise_train_idx[ii]) == False)[0])
+                dimwise_val_vals.append(datadimvals[ii][dimwise_val_idx[ii]])
+            
+        else:
+            raise Exception('dimensionwise_partition for shapetype {} is not implemented'.format(shapetype))
+            
+        
+        n_dim = len(datadimvals)
+        traintrials = np.ones(latents_values.shape[0], dtype = bool)
+        for ii in range(n_dim):
+            traintrials = traintrials & np.isin(latents_values[:,ii], dimwise_train_vals[ii])
+        valtrials = traintrials == False
+        
+        n_train_samples = np.sum(traintrials)
+        
+        idx = np.arange(latents_values.shape[0], dtype = int)        
+        partition = {'train': idx[traintrials], 'validation': idx[valtrials], 'datadimvals': datadimvals, 'dimwise_train_idx': dimwise_train_idx, 'dimwise_val_idx': dimwise_val_idx, 'n_train_samples': n_train_samples}
+        
     return partition
         
 # Helper function to show images
