@@ -102,3 +102,49 @@ def colorAxisNormalize(colorbar):
     """
     cm = np.max(np.abs(colorbar.get_clim()))
     colorbar.set_clim(-cm,cm)
+    
+def showReconstructionsAndErrors(model):
+    """showReconstructionsAndErrors(model):
+        generates random inputs, runs them through a specified model
+        to generate their reconstructions. plots the inputs,
+        reconstructions, and their difference
+        ---e.g.---
+        from staticvae.models import staticVAE32
+        vae = staticVAE32(n_latent = 4)
+        vae.eval()
+        checkpoint = torch.load('../staticvae/trained/staticvae32_dsprites_circle_last_500K',map_location='cpu')
+        vae.load_state_dict(checkpoint['model_states']['net'])
+        showReconstructionsAndErrors(model)
+    """
+    fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w',
+                   edgecolor='k')
+    cnt = 0
+    for ii in range(12):
+        x,label = ds[np.random.randint(1000)]
+        x = x[np.newaxis, :, :]
+
+        recon, mu, logvar = model(x.float())
+        recon = recon.detach()
+        diff = x - recon
+
+        cnt += 1
+        ax = plt.subplot(6,6,cnt)
+        plt.set_cmap('gray')
+        ax.imshow(x.squeeze(), vmin=0, vmax=1)
+        plt.title('true')
+        plt.axis('off')
+
+        cnt += 1
+        ax = plt.subplot(6,6,cnt)    
+        ax.imshow(recon.squeeze(), vmin=0, vmax=1)
+        plt.title('recon')
+        plt.axis('off')
+
+        cnt += 1
+        ax = plt.subplot(6,6,cnt)    
+        m = .5
+        plt.set_cmap('bwr')
+        img = ax.imshow(diff.numpy().squeeze(), vmin=-m, vmax=m)
+        colorAxisNormalize(fig.colorbar(img))
+        plt.title('diff')
+        plt.axis('off')
