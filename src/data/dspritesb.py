@@ -14,14 +14,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from torchvision import transforms, utils
 
-"""
-Possibly to-do
-    
-### seperate training and validation sets
-    - CURRENTLY: no separation (overfitting / fitting to traing samples is likely)
-    - e.g.: https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
-"""
-
 class dSpriteBackgroundDataset(Dataset):
     """ dSprite with (gaussian) background dataset.
     __getitem__ returns a 3D Tensor [n_channels, image_size_x, image_size_y] 
