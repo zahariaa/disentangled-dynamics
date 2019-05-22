@@ -89,6 +89,7 @@ class Solver(object):
         self.model = args.model
         
         self.image_size = args.image_size
+	self.n_latent = args.n_latent
         self.img_channels = args.img_channels
         
         # beta for beta VAE
@@ -118,7 +119,7 @@ class Solver(object):
             raise Exception('model "%s" unknown' % args.model)
             
         
-        self.net = net(n_latent = args.n_latent, img_channels = self.img_channels).to(self.device)
+        self.net = net(n_latent = self.n_latent, img_channels = self.img_channels).to(self.device)
         
         self.reconstruction_loss = reconstruction_loss
         self.kl_divergence = kl_divergence
@@ -142,7 +143,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_betanorm={}_{}_last'.format(self.model.lower(), self.beta_norm, args.dataset.lower())
+        self.ckpt_name = '{}_nlatent={}_betanorm={}_{}_last'.format(self.model.lower(), self.n_latent, self.beta_norm, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -156,7 +157,7 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_betanorm={}_{}'.format(self.model.lower(), self.beta_norm, args.dataset.lower())
+        self.trainstats_fname = '{}_nlatent={}_betanorm={}_{}'.format(self.model.lower(), self.n_latent, self.beta_norm, args.dataset.lower())
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         
