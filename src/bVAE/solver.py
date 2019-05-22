@@ -89,7 +89,7 @@ class Solver(object):
         self.model = args.model
         
         self.image_size = args.image_size
-	self.n_latent = args.n_latent
+        self.n_latent = args.n_latent
         self.img_channels = args.img_channels
         
         # beta for beta VAE
