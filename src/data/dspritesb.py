@@ -85,7 +85,7 @@ class dSpriteBackgroundDataset(Dataset):
         sample = np.clip(foreground+0.8*background,0,255).astype('uint8')
 
         # Output
-        latent = np.concatenate((self.latents_values[idx,-2:],mu.astype('float32')))
+        latent = self.latents_values[idx,:]
 
         if self.transform:
             sample = self.transform(sample)
@@ -340,7 +340,7 @@ def show_images_grid(samples):
 def demo(shapetype='dsprite',data_dir='../data/dsprites-dataset/'):
    dSpritesB = dSpriteBackgroundDataset(shapetype=shapetype,data_dir=data_dir)
    
-   idx = 30001
+   idx = 3001
    print('One sample (#{}), addressed'.format(idx))
    sample,latent = dSpritesB[idx]
    h = plt.imshow(transforms.ToPILImage()(sample),cmap=plt.cm.gray)
