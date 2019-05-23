@@ -56,7 +56,7 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
     return yhat,x
 
 # Plot sweeps through model
-def plotCircleSweep(yhat,x=None):
+def plotCircleSweep(yhat,x=None,nmodels=None):
     """plotCircleSweep(yhat,x):
         plots model latents and a subset of the corresponding stimuli,
         generated from sweepCircleLatents()
@@ -66,24 +66,34 @@ def plotCircleSweep(yhat,x=None):
         alternatively,
         plotCircleSweep(sweepCircleLatents(vae))
     """
+    # Initialization
     if x is None and type(yhat) is tuple:
         x    = yhat[1]
         yhat = yhat[0]
+
+    if nmodels is None:
+        nmodels = 1
+        yhat = [yhat]
     
-    fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-
     nimgs = 5
-    for latentdim in np.arange(0,4):
-        ax = plt.subplot(nimgs+1,4,1+latentdim)
-        plt.plot(yhat[latentdim*16+np.arange(0,16),:].detach().numpy())
+    
+    # Start a-plottin'
+    fig, ax = plt.subplots(nimgs+nmodels,4,figsize=(9, 15), dpi= 80, facecolor='w', edgecolor='k')
+    
+    for latentdim in range(4):
+        for imodel in range(nmodels):
+            plt.sca(ax[imodel,latentdim])
+            plt.plot(yhat[imodel][latentdim*16+np.arange(0,16),:].detach().numpy())
 
-        cnt = 0
+        cnt = -1
         for img in np.linspace(0,15,nimgs).astype(int):
             cnt+=1
-            ax = plt.subplot(nimgs+1,4,1+latentdim+4*cnt)
+            plt.sca(ax[nmodels+cnt,latentdim])
             plt.set_cmap('gray')
-            ax.imshow(x[latentdim*16+img,:,:,:].squeeze(), vmin=0, vmax=1)
+            ax[nmodels+cnt,latentdim].imshow(
+                x[latentdim*16+img,:,:,:].squeeze(), vmin=0, vmax=1)
             plt.axis('off')
+    return fig, ax
 
 def colorAxisNormalize(colorbar):
     """colorAxisNormalize(colorbar):
