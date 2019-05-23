@@ -8,15 +8,15 @@ this directory for code implementation, testing, etc
 
 ###### 1) Building analyses pipelines/scripts (apply to decoder and VAE)
 
-- Do reconstruction error differ between edges / inside / outside of the circle? (BP - in progress)
-- Do circle-reconstructions differ as a function of distance to the gaussian center? (BP - in progress)
+- <del>Do reconstruction error differ between edges / inside / outside of the circle?</del>
+- <del>Do circle-reconstructions differ as a function of distance to the gaussian center?</del>
 - <del>Entangling/disentangling in the VAE (correlations in latent space)</del>
 - <del>Sweep through generative factors and plot/quantify effect in the latents (of the VAE)</del>
 - consider posterior variance as well, i.e., \sigma(x) (AZ - in progress)
 
 ###### 2) Experiments
 
-- train on random sample of (x,y) positions -> validate on unseen positions
+- <del>train on random sample of (x,y) positions -> validate on unseen positions</del>
 - different shapes
 - dataset where circle has 0.5 luminance value
 - "elongated" ball (make it 5D latent)
@@ -27,7 +27,7 @@ this directory for code implementation, testing, etc
 
 ###### 3) new architectures
 
-- bVAE (BP - training in progress)
+- <del>bVAE</del>
 - potentially: how many channels/layers are necessary? (for the decoder)
 - PCA?
 
