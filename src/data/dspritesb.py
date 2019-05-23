@@ -85,7 +85,7 @@ class dSpriteBackgroundDataset(Dataset):
         
         # Set up background
         if mu is None:
-            mu = 2*np.random.randint(self.pixels/2,size=2)/self.pixels
+            mu = self.latents_values[idx,:2]
         background = self.gaussian2D(mu)
         background = (255*background).reshape(background.shape+(1,))
 
