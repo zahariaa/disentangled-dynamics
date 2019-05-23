@@ -133,8 +133,8 @@ def showReconstructionsAndErrors(model):
         x,label = ds[np.random.randint(1000)]
         x = x[np.newaxis, :, :]
 
-        recon, mu, logvar = model(x.float())
-        recon = recon.detach()
+        mu,logvar = model.encode(x.float())
+        recon = model.decode(mu).detach()
         diff = x - recon
 
         cnt += 1
@@ -152,9 +152,8 @@ def showReconstructionsAndErrors(model):
 
         cnt += 1
         ax = plt.subplot(6,6,cnt)    
-        m = .5
         plt.set_cmap('bwr')
-        img = ax.imshow(diff.numpy().squeeze(), vmin=-m, vmax=m)
+        img = ax.imshow(diff.numpy().squeeze())
         colorAxisNormalize(fig.colorbar(img))
         plt.title('diff')
         plt.axis('off')
