@@ -19,7 +19,7 @@ import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 
 from data.dspritesb import dSpriteBackgroundDataset
-from models import staticVAE32
+from models import dynamicVAE32
 from models import loss_function, reconstruction_loss, kl_divergence
 from models import normalized_beta_from_beta, beta_from_normalized_beta
 
@@ -112,9 +112,9 @@ class Solver(object):
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
-        if args.model.lower() == "staticvae32":
-            net = staticVAE32
-            self.modeltype = 'staticVAE'
+        if args.model.lower() == "dynamicvae32":
+            net = dynamicVAE32
+            self.modeltype = 'dynamicVAE'
         else:
             raise Exception('model "%s" unknown' % args.model)
             
@@ -190,7 +190,7 @@ class Solver(object):
                 img_batch, _ = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
-                if self.modeltype == 'staticVAE':
+                if self.modeltype == 'dynamicVAE':
                     input_batch = img_batch
                     output_batch = img_batch
 

@@ -159,7 +159,7 @@ def build_tridiag(D,B):
     """
 
     def __init__(self, n_latent = 10, img_channels = 1):
-        super(staticVAE64, self).__init__()
+        super(dynamicVAE64, self).__init__()
         
         self.n_latent = n_latent
         self.img_channels = img_channels
@@ -226,18 +226,18 @@ class dynamicVAE32(nn.Module):
     """
 
     def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10):
-        super(staticVAE32, self).__init__()
+        super(dynamicVAE32, self).__init__()
         
         self.n_latent = n_latent
         self.img_channels = img_channels
         self.n_frames = n_frames #=T
 
         # encoder
-        self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 4, stride = 2, padding = 1)     # B, 32, 16, 16, T
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 4, stride = 2, padding = 1)               # B, 32, 8, 8, T
-        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 4, stride = 2, padding = 1)               # B, 64, 4, 4, T
-        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 4, stride = 2, padding = 1)               # B, 64, 2, 2, T
-        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 4, stride = 2, padding = 1)               # B, 64, 1, 1, T
+        self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B, 32, 16, 16, T
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)               # B, 32, 8, 8, T
+        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 4, 4, T
+        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 2, 2, T
+        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 1, 1, T
 
         # Construct mu_t vector and D_t and B_t matrices which comprise mean and the inverse covariance
 # they must be constructed separately, so there is inappropriate cross-talk across time
@@ -267,14 +267,15 @@ class dynamicVAE32(nn.Module):
         return out
 
     def encode(self, x):
+        x = x.permute(1,2,3,0).unsqueeze(0) # change this in dataloader
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))
-        x = torch.relu(self.conv5(x))     
-        mu = self.fc_enc_mu(x.view(-1, 64*self.n_frames))
-        D = self.fc_enc_D(x.view(-1, 64*64*self.n_frames))
-        B = self.fc_enc_B(x.view(-1, 64*64*(self.n_frames-1)))
+        x = torch.relu(self.conv5(x))
+        mu = self.fc_enc_mu(x.view(-1, self.n_frames*64))
+        D = self.fc_enc_D(x.view(self.n_frames,64).repeat(1,64*n_frames))
+        B = self.fc_enc_B(x.view(self.n_frames,64)[1:self.n_frames,:].repeat(1,64))
         return mu, D, B
 
     def decode(self, z):

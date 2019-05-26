@@ -37,9 +37,9 @@ def main(args):
     net.train()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='beta VAE')
+    parser = argparse.ArgumentParser(description='dynamic beta VAE')
 
-    parser.add_argument('--model', default='staticVAE32', type=str, help='which model to train (staticVAE32, staticVAE64))')
+    parser.add_argument('--model', default='dynamicVAE32', type=str, help='which model to train (dynamicVAE32, dynamicVAE64))')
     
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
