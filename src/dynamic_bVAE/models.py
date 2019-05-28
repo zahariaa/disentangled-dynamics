@@ -61,9 +61,9 @@ def kl_divergence(mu, covariance_mats, precision_mats):
     #     logvar = logvar.view(logvar.size(0), logvar.size(1))
 
     # Compute KL divergence
-    klds = torch.zeros(batch_size)
+    klds = torch.zeros(batch_size).to(precision_mats.device)
     for b in range(batch_size):
-        klds[b] = 0.5*( torch.trace(covariance_mats[b,:,:]) + torch.dot(mu[b,:].view(-1),mu[b,:].view(-1)) - k * torch.logdet(precision_mats[b,:,:]) )
+        klds[b] = 0.5*( torch.trace(covariance_mats[b,:,:]) + mu[b,:].view(-1).dot(mu[b,:].view(-1)) - k * torch.logdet(precision_mats[b,:,:]) )
 
     total_kld = klds.sum(0).mean(0, keepdim=True)
     dimension_wise_kld = klds.mean(0)
@@ -152,6 +152,7 @@ def build_tridiag(D, B, alpha=0.5):
     
     return tridiag
 
+class dynamicVAE64(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 64x64x1
         from Table 1 in Higgins et al., 2017, ICLR
 
@@ -265,13 +266,13 @@ class dynamicVAE32(nn.Module):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
         precision_mats = build_tridiag(D,B,alpha).to(self.device)
-        covariance_mats = torch.zeros_like(precision_mats).to(self.device)
+        covariance_mats = torch.zeros_like(precision_mats)
         z = torch.zeros_like(mu)
+        eps = torch.randn_like(mu)
         for i in range(precision_mats.size(0)):
-            covariance_mats[i,:,:] = torch.inverse(precision_mats[i,:,:])
-            out = torch.distributions.multivariate_normal.MultivariateNormal(
-                mu[i,:], covariance_mats[i,:,:])
-            z[i,:] = out.sample()
+            U = torch.cholesky(precision_mats[i,:,:])
+            covariance_mats[i,:,:] = torch.inverse(U)
+            z[i,:] = mu[i,:] + covariance_mats[i,:,:].matmul(eps[i,:])
         return z, covariance_mats, precision_mats
 
     def encode(self, x):
