@@ -269,8 +269,8 @@ class dynamicVAE32(nn.Module):
         z = torch.zeros_like(mu)
         eps = torch.randn_like(mu)
         for i in range(precision_mats.size(0)):
-            U = torch.cholesky(precision_mats[i,:,:])
-            covariance_mats[i,:,:] = torch.inverse(U)
+            Linv = torch.inverse(torch.cholesky(precision_mats[i,:,:]))
+            covariance_mats[i,:,:] = torch.t(Linv).matmul(Linv)
             z[i,:] = mu[i,:] + covariance_mats[i,:,:].matmul(eps[i,:])
         return z, covariance_mats, precision_mats
 
