@@ -18,7 +18,7 @@ import pickle
 import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 
-from data.dspritesb import dSpriteBackgroundDataset
+from data.dspritesbT import dSpriteBackgroundDatasetTime
 from models import dynamicVAE32
 from models import loss_function, reconstruction_loss, kl_divergence
 from models import normalized_beta_from_beta, beta_from_normalized_beta
@@ -105,10 +105,10 @@ class Solver(object):
                             'num_workers': args.num_workers}
 
         if args.dataset.lower() == 'dsprites_circle':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((self.image_size,self.image_size)),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDatasetTime(transform=transforms.Resize((self.image_size,self.image_size)),
                                             shapetype = 'circle'), **dataloaderparams)
         elif args.dataset.lower() == 'dsprites':
-            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDataset(transform=transforms.Resize((self.image_size,self.image_size)),
+            self.train_loader = torch.utils.data.DataLoader(dSpriteBackgroundDatasetTime(transform=transforms.Resize((self.image_size,self.image_size)),
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
@@ -194,11 +194,10 @@ class Solver(object):
                     input_batch = img_batch
                     output_batch = img_batch
 
-                                    
-                predicted_batch, mu, logvar = self.net(input_batch)
+                predicted_batch, mu, covariance_mat, precision_mat = self.net(input_batch)
                 
                 recon_loss = self.reconstruction_loss(x = output_batch, x_recon = predicted_batch)
-                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, logvar)
+                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, covariance_mat, precision_mat)
                 
                 actLoss = self.loss(recon_loss=recon_loss, total_kld=total_kld, beta = self.beta)
                 
