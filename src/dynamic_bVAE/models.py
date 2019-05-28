@@ -240,18 +240,16 @@ class dynamicVAE32(nn.Module):
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)               # B*T, 32, 8, 8
         self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 4, 4
         self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 2, 2
-        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 1, 1
         
         # Construct mu_t vector and D_t and B_t matrices which comprise mean and the inverse covariance
 # they must be constructed separately, so there is inappropriate cross-talk across time
-        self.fc_enc_mu = nn.Linear(64*n_frames, n_latent*n_frames, bias = True)     # mu_t = NN_{phi_mu}(x_t), stacked
-        self.fc_enc_D  = nn.Linear(64*n_frames, n_latent*n_latent*n_frames, bias = True) # just D_t stacked
-        self.fc_enc_B  = nn.Linear(64*n_frames, n_latent*n_latent*(n_frames-1), bias = True) # just B_t stacked
+        self.fc_enc_mu = nn.Linear(256*n_frames, n_latent*n_frames, bias = True)     # mu_t = NN_{phi_mu}(x_t), stacked
+        self.fc_enc_D  = nn.Linear(256*n_frames, n_latent*n_latent*n_frames, bias = True) # just D_t stacked
+        self.fc_enc_B  = nn.Linear(256*n_frames, n_latent*n_latent*(n_frames-1), bias = True) # just B_t stacked
 
         # decoder
-        self.fc_dec = nn.Linear(n_latent*n_frames, 64*n_frames, bias = True)                         # 1, B*64 (after .view(): B, 64, 1, 1)
+        self.fc_dec = nn.Linear(n_latent*n_frames, 256*n_frames, bias = True)                         # 1, B*64 (after .view(): B, 64, 2, 2)
 
-        self.convT5 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B, 64, 2, 2
         self.convT4 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B, 64, 4, 4
         self.convT3 = nn.ConvTranspose2d(64, 32, 3, 2, 1, 1)                       # B, 32, 8, 8
         self.convT2 = nn.ConvTranspose2d(32, 32, 3, 2, 1, 1)                       # B, 32, 16, 16
@@ -281,15 +279,13 @@ class dynamicVAE32(nn.Module):
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))
-        x = torch.relu(self.conv5(x))
-        mu = self.fc_enc_mu(x.view(-1, 64*self.n_frames))
-        D = self.fc_enc_D(x.view(-1, 64*self.n_frames))
-        B = self.fc_enc_B(x.view(-1 ,64*self.n_frames))
+        mu = self.fc_enc_mu(x.view(-1, 256*self.n_frames))
+        D = self.fc_enc_D(x.view(-1, 256*self.n_frames))
+        B = self.fc_enc_B(x.view(-1 ,256*self.n_frames))
         return mu, D, B
 
     def decode(self, z):
-        x = self.fc_dec(z).view(-1,64,1,1)
-        x = torch.nn.functional.elu(self.convT5(x))
+        x = self.fc_dec(z).view(-1,64,2,2)
         x = torch.nn.functional.elu(self.convT4(x))
         x = torch.nn.functional.elu(self.convT3(x))
         x = torch.nn.functional.elu(self.convT2(x))
