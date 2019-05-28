@@ -227,12 +227,13 @@ class dynamicVAE32(nn.Module):
 
     """
 
-    def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10):
+    def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10, alpha=0.75):
         super(dynamicVAE32, self).__init__()
         
         self.n_latent = n_latent
         self.img_channels = img_channels
         self.n_frames = n_frames #=T
+        self.alpha = alpha
 
         # encoder
         self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B*T, 32, 16, 16
@@ -262,10 +263,10 @@ class dynamicVAE32(nn.Module):
         for m in self._modules:
             kaiming_init(m)
 
-    def reparametrize(self, mu, D, B, alpha=0.5):
+    def reparametrize(self, mu, D, B):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
-        precision_mats = build_tridiag(D,B,alpha).to(self.device)
+        precision_mats = build_tridiag(D,B,self.alpha).to(self.device)
         covariance_mats = torch.zeros_like(precision_mats)
         z = torch.zeros_like(mu)
         eps = torch.randn_like(mu)
@@ -295,7 +296,7 @@ class dynamicVAE32(nn.Module):
         x = torch.sigmoid(self.convT1(x))
         return x
     
-    def forward(self, x, alpha=0.5):
+    def forward(self, x):
         mu, D, B = self.encode(x)
-        z, covariance_mat, precision_mat = self.reparametrize(mu, D, B, alpha)
-        return self.decode(z), mu, covariance_mat, precision_mat
+        z, covariance_mats, precision_mats = self.reparametrize(mu, D, B)
+        return self.decode(z), mu, covariance_mats, precision_mats
