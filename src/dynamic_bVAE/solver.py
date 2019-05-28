@@ -194,10 +194,11 @@ class Solver(object):
                     input_batch = img_batch
                     output_batch = img_batch
 
-                predicted_batch, mu, covariance_mat, precision_mat = self.net(input_batch)
+                print(input_batch.shape)
+                predicted_batch, mu, covariance_mats, precision_mats = self.net(input_batch)
                 
                 recon_loss = self.reconstruction_loss(x = output_batch, x_recon = predicted_batch)
-                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, covariance_mat, precision_mat)
+                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, covariance_mats, precision_mats)
                 
                 actLoss = self.loss(recon_loss=recon_loss, total_kld=total_kld, beta = self.beta)
                 

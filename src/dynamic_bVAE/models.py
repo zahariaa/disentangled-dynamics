@@ -32,37 +32,42 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
     """
     
     batch_size = x.size(0)
+    n_frames = x.size(1)
     assert batch_size != 0
     
     if distribution == 'bernoulli':
-        recon_loss = nn.functional.binary_cross_entropy(x_recon, x, reduction='sum').div(batch_size)
+        recon_loss = nn.functional.binary_cross_entropy(x_recon.view(batch_size,n_frames,x.size(2),x.size(3),x.size(4)), 
+                                                        x, reduction='sum').div(batch_size)
     elif distribution == 'gaussian':
         #x_recon = nn.functional.sigmoid(x_recon)
-        recon_loss = nn.functional.mse_loss(x_recon, x, reduction='sum').div(batch_size)
+        recon_loss = nn.functional.mse_loss(x_recon.view(batch_size,n_frames,x.size(2),x.size(3),x.size(4)), 
+                                            x, reduction='sum').div(batch_size)
     else:
         recon_loss = None
         
     return recon_loss    
 
-def kl_divergence(mu, covariance_mat, precision_mat):
+def kl_divergence(mu, covariance_mats, precision_mats):
     """
      from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
      
-    """    
-    k = mu.size(0)
-    assert k != 0
-    if mu.data.ndimension() == 4:
-        mu = mu.view(mu.size(0), mu.size(1))
+    """ 
+    batch_size = mu.size(0)
+    k = mu.size(1)
+    assert batch_size != 0
+#     if mu.data.ndimension() == 4:
+#         mu = mu.view(mu.size(0), mu.size(1))
     # if logvar.data.ndimension() == 4:
     #     logvar = logvar.view(logvar.size(0), logvar.size(1))
 
     # Compute KL divergence
-    klds = 0.5*( torch.trace(covariance_mat) + torch.dot(mu,mu) - k * torch.logdet(precision_mat) )
+    klds = torch.zeros(batch_size)
+    for b in range(batch_size):
+        klds[b] = 0.5*( torch.trace(covariance_mats[b,:,:]) + torch.dot(mu[b,:].view(-1),mu[b,:].view(-1)) - k * torch.logdet(precision_mats[b,:,:]) )
 
-    # TODO: make batch size>1, allowing for this stuff
-    total_kld = klds#.sum(1).mean(0, keepdim=True)
-    dimension_wise_kld = klds#.mean(0)
-    mean_kld = klds#.mean(1).mean(0, keepdim=True)
+    total_kld = klds.sum(0).mean(0, keepdim=True)
+    dimension_wise_kld = klds.mean(0)
+    mean_kld = klds.mean(0).mean(0, keepdim=True)
     
     return total_kld, dimension_wise_kld, mean_kld
 
@@ -125,24 +130,25 @@ def build_tridiag(D, B, alpha=0.5):
                          0's   ...        B_(T-1) D_T]
     """
     # Initialize
-
-    p2 = D.shape[1]-B.shape[1] # number of frames (time bins), number of pixels
-    t = int(D.shape[1]/p2)
+    batch_size = D.size(0)
+    p2 = D.size(1)-B.size(1) # number of frames (time bins), number of pixels
+    t = int(D.size(1)/p2)
     p = int(p2**0.5)
-    tridiag = torch.zeros(p*t,p*t)
+    tridiag = torch.zeros(batch_size,p*t,p*t)
     
     # Go row-block by row-block
-    for i in range(t):
-        # Build diagonal blocks (D_i)
-        tridiag[(p*i):(p*(i+1)),(p*i):(p*(i+1))] = D[:,(p2*i):(p2*(i+1))].view(p,p)
-        # Build off-diagonal blocks (B_i)
-        if i > 0:
-            tridiag[(p*i):(p*(i+1)),(p*(i-1)):(p*i)] = B[:,(p2*(i-1)):(p2*i)].view(p,p)
-        if i < t-1:
-            tridiag[(p*i):(p*(i+1)),(p*(i+1)):(p*(i+2))] = torch.t(B[:,(p2*i):(p2*(i+1))].view(p,p))
+    for b in range(batch_size):
+        for i in range(t):
+            # Build diagonal blocks (D_i)
+            tridiag[b,(p*i):(p*(i+1)),(p*i):(p*(i+1))] = D[b,(p2*i):(p2*(i+1))].view(p,p)
+            # Build off-diagonal blocks (B_i)
+            if i > 0:
+                tridiag[b,(p*i):(p*(i+1)),(p*(i-1)):(p*i)] = B[b,(p2*(i-1)):(p2*i)].view(p,p)
+            if i < t-1:
+                tridiag[b,(p*i):(p*(i+1)),(p*(i+1)):(p*(i+2))] = torch.t(B[b,(p2*i):(p2*(i+1))].view(p,p))
             
     # Force to be positive semi-definite
-    tridiag = tridiag + alpha*torch.eye(p*t)
+    tridiag = tridiag + alpha*torch.eye(p*t).repeat(batch_size,1,1)
     
     return tridiag
 
@@ -225,14 +231,14 @@ class dynamicVAE32(nn.Module):
         
         self.n_latent = n_latent
         self.img_channels = img_channels
-        self.n_frames = n_frames #=B
+        self.n_frames = n_frames #=T
 
         # encoder
-        self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B, 32, 16, 16
-        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)               # B, 32, 8, 8
-        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 4, 4
-        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 2, 2
-        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B, 64, 1, 1
+        self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B*T, 32, 16, 16
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)               # B*T, 32, 8, 8
+        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 4, 4
+        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 2, 2
+        self.conv5 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 1, 1
         
         # Construct mu_t vector and D_t and B_t matrices which comprise mean and the inverse covariance
 # they must be constructed separately, so there is inappropriate cross-talk across time
@@ -256,19 +262,25 @@ class dynamicVAE32(nn.Module):
             kaiming_init(m)
 
     def reparametrize(self, mu, D, B, alpha=0.5):
-        precision_mat = build_tridiag(D,B,alpha)
-        covariance_mat = torch.inverse(precision_mat)
-        out = torch.distributions.multivariate_normal.MultivariateNormal(
-            mu, covariance_mat)
-        return out.sample(), covariance_mat, precision_mat
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        
+        precision_mats = build_tridiag(D,B,alpha).to(self.device)
+        covariance_mats = torch.zeros_like(precision_mats).to(self.device)
+        z = torch.zeros_like(mu)
+        for i in range(precision_mats.size(0)):
+            covariance_mats[i,:,:] = torch.inverse(precision_mats[i,:,:])
+            out = torch.distributions.multivariate_normal.MultivariateNormal(
+                mu[i,:], covariance_mats[i,:,:])
+            z[i,:] = out.sample()
+        return z, covariance_mats, precision_mats
 
     def encode(self, x):
-        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv1(x.view(self.n_frames*x.size(0),1,32,32)))
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))
         x = torch.relu(self.conv5(x))
-        mu = self.fc_enc_mu(x.view(-1, 64*self.n_frames)).view(-1)
+        mu = self.fc_enc_mu(x.view(-1, 64*self.n_frames))
         D = self.fc_enc_D(x.view(-1, 64*self.n_frames))
         B = self.fc_enc_B(x.view(-1 ,64*self.n_frames))
         return mu, D, B
