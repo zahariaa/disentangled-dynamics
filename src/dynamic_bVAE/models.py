@@ -73,6 +73,7 @@ def kl_divergence(mu, covariance_mats, precision_mats):
 
 def loss_function(recon_loss, total_kld, beta = 1):
     
+    print('recon={}, kld={}'.format(recon_loss, total_kld))
     beta_vae_loss = recon_loss + beta*total_kld
 
     return beta_vae_loss
@@ -131,21 +132,27 @@ def build_tridiag(D, B, alpha=0.5):
     """
     # Initialize
     batch_size = D.size(0)
-    p2 = D.size(1)-B.size(1) # number of frames (time bins), number of pixels
-    t = int(D.size(1)/p2)
-    p = int(p2**0.5)
+    #p2 = D.size(1)-B.size(1) # number of frames (time bins), number of pixels
+    #p2 = D.size(1)-B.size(1) # number of frames (time bins), number of pixels
+    #t = int(D.size(1)/p2)
+    #p = int(p2**0.5)
+    t = int(D.size(1))
+    p = int(D.size(2)**0.5)
     tridiag = torch.zeros(batch_size,p*t,p*t)
     
     # Go row-block by row-block
     for b in range(batch_size):
         for i in range(t):
             # Build diagonal blocks (D_i)
-            tridiag[b,(p*i):(p*(i+1)),(p*i):(p*(i+1))] = D[b,(p2*i):(p2*(i+1))].view(p,p)
+            #tridiag[b,(p*i):(p*(i+1)),(p*i):(p*(i+1))] = D[b,(p2*i):(p2*(i+1))].view(p,p)
+            tridiag[b,(p*i):(p*(i+1)),(p*i):(p*(i+1))] = D[b,i,:].view(p,p)
             # Build off-diagonal blocks (B_i)
             if i > 0:
-                tridiag[b,(p*i):(p*(i+1)),(p*(i-1)):(p*i)] = B[b,(p2*(i-1)):(p2*i)].view(p,p)
+                #tridiag[b,(p*i):(p*(i+1)),(p*(i-1)):(p*i)] = B[b,(p2*(i-1)):(p2*i)].view(p,p)
+                tridiag[b,(p*i):(p*(i+1)),(p*(i-1)):(p*i)] = B[b,i-1,:].view(p,p)
             if i < t-1:
-                tridiag[b,(p*i):(p*(i+1)),(p*(i+1)):(p*(i+2))] = torch.t(B[b,(p2*i):(p2*(i+1))].view(p,p))
+                #tridiag[b,(p*i):(p*(i+1)),(p*(i+1)):(p*(i+2))] = torch.t(B[b,(p2*i):(p2*(i+1))].view(p,p))
+                tridiag[b,(p*i):(p*(i+1)),(p*(i+1)):(p*(i+2))] = torch.t(B[b,i-1,:].view(p,p))
             
     # Force to be positive semi-definite
     tridiag = tridiag + alpha*torch.eye(p*t).repeat(batch_size,1,1)
@@ -250,7 +257,7 @@ class dynamicVAE32(nn.Module):
         self.fc_enc_B  = nn.Linear(256*2, n_latent*n_latent, bias = True) # just B_t stacked
 
         # decoder
-        self.fc_dec = nn.Linear(n_latent, 256*n_frames, bias = True)                         # 1, B*64 (after .view(): B, 64, 2, 2)
+        self.fc_dec = nn.Linear(n_latent, 256, bias = True)                         # 1, B*64 (after .view(): B, 64, 2, 2)
 
         self.convT4 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B, 64, 4, 4
         self.convT3 = nn.ConvTranspose2d(64, 32, 3, 2, 1, 1)                       # B, 32, 8, 8
@@ -264,16 +271,23 @@ class dynamicVAE32(nn.Module):
             kaiming_init(m)
 
     def reparametrize(self, mu, D, B):
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = mu.device
         
-        precision_mats = build_tridiag(D,B,self.alpha).to(self.device)
-        covariance_mats = torch.zeros_like(precision_mats)
-        z = torch.zeros_like(mu)
-        eps = torch.randn_like(mu)
-        for i in range(precision_mats.size(0)):
-            Linv = torch.inverse(torch.cholesky(precision_mats[i,:,:]))
-            covariance_mats[i,:,:] = torch.t(Linv).matmul(Linv)
-            z[i,:] = mu[i,:] + covariance_mats[i,:,:].matmul(eps[i,:])
+        precision_mats = build_tridiag(D,B,self.alpha).to(device)
+        U = torch.cholesky(precision_mats, upper = True)
+        U_inv = torch.inverse(U)
+        covariance_mats = U_inv.matmul(U_inv.permute(0,2,1))
+        # http://www.statsathome.com/2018/10/19/sampling-from-multivariate-normal-precision-and-covariance-parameterizations/
+        
+        mu = mu.view(precision_mats.size(0),-1).to(device)
+        eps = torch.randn_like(mu).unsqueeze(2).to(device)
+        #for i in range(precision_mats.size(0)):
+        #    Linv = torch.inverse(torch.cholesky(precision_mats[i,:,:]))
+        #    covariance_mats[i,:,:] = torch.t(Linv).matmul(Linv)
+        #    z[i,:] = mu[i,:] + covariance_mats[i,:,:].matmul(eps[i,:])
+        
+                       
+        z = mu + U_inv.matmul(eps).squeeze()
         return z, covariance_mats, precision_mats
 
     def encode(self, x):
@@ -283,31 +297,36 @@ class dynamicVAE32(nn.Module):
         x = torch.relu(self.conv4(x))
         
         x = x.view(-1, self.n_frames,256)
-        mu = self.fc_enc_mu(x)
+        mu = self.fc_enc_mu(x) 
         D = self.fc_enc_D(x)
+        # B receives input from two timepoints (t, and t+1)
+        # this will yield an output of shape [64,n_frames-1,n_latent*n_latent], where B[0,0,:] are the entries in the B matrix corresponding to time-point 1 and 2
         B = self.fc_enc_B(x[:,:2,:].view(-1,2*256)).view(-1,1,self.n_latent*self.n_latent)
         for t in range(1,self.n_frames-1):
             B = torch.cat((B, self.fc_enc_B(x[:,t:(t+2),:].view(-1,2*256)).view(-1,1,self.n_latent*self.n_latent)),1)
         
         # output shapes now:
-        #mu.shape = [64,n_frames,10]
-        #D.shape = [64,n_frames,100]
-        #B.shape = [64,n_frames-1,100]
+        #mu.shape = [64,n_frames,n_latent]
+        #D.shape = [64,n_frames,n_latent*n_latent]
+        #B.shape = [64,n_frames-1,n_latent*n_latent]
         
         return mu, D, B
 
     def decode(self, z):
-        x = self.fc_dec(z).view(-1,64,2,2)
+        x = self.fc_dec(z.view(-1, self.n_frames, self.n_latent)).view(-1,64,2,2)
         x = torch.nn.functional.elu(self.convT4(x))
         x = torch.nn.functional.elu(self.convT3(x))
         x = torch.nn.functional.elu(self.convT2(x))
         x = torch.sigmoid(self.convT1(x))
+        x = x.view(-1, self.n_frames, self.img_channels, 32, 32)
         return x
     
     def forward(self, x):
         mu, D, B = self.encode(x)
+        print('mu:{},D:{},B:{}'.format(torch.any(torch.isnan(mu)),torch.any(torch.isnan(D)),torch.any(torch.isnan(B))))
         z, covariance_mats, precision_mats = self.reparametrize(mu, D, B)
+        print('z:{},covariance_mats:{},precision_mats:{}'.format(torch.any(torch.isnan(z)),torch.any(torch.isnan(covariance_mats)),torch.any(torch.isnan(precision_mats))))
         return self.decode(z), mu, covariance_mats, precision_mats
 
 m = dynamicVAE32()
-m(torch.randn(64,10,1,32,32))
+recon, mu, cov, prec = m(torch.randn(64,10,1,32,32))
