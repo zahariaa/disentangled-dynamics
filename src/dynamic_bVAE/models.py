@@ -242,13 +242,15 @@ class dynamicVAE32(nn.Module):
         self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 2, 2
         
         # Construct mu_t vector and D_t and B_t matrices which comprise mean and the inverse covariance
-# they must be constructed separately, so there is inappropriate cross-talk across time
-        self.fc_enc_mu = nn.Linear(256*n_frames, n_latent*n_frames, bias = True)     # mu_t = NN_{phi_mu}(x_t), stacked
-        self.fc_enc_D  = nn.Linear(256*n_frames, n_latent*n_latent*n_frames, bias = True) # just D_t stacked
-        self.fc_enc_B  = nn.Linear(256*n_frames, n_latent*n_latent*(n_frames-1), bias = True) # just B_t stacked
+        # they must be constructed separately, so there is inappropriate cross-talk across time
+        self.fc_enc_mu = nn.Linear(256, n_latent, bias = True)     # mu_t = NN_{phi_mu}(x_t), stacked
+        
+        self.fc_enc_D  = nn.Linear(256, n_latent*n_latent, bias = True) # just D_t stacked
+        # B receives information from two time-points
+        self.fc_enc_B  = nn.Linear(256*2, n_latent*n_latent, bias = True) # just B_t stacked
 
         # decoder
-        self.fc_dec = nn.Linear(n_latent*n_frames, 256*n_frames, bias = True)                         # 1, B*64 (after .view(): B, 64, 2, 2)
+        self.fc_dec = nn.Linear(n_latent, 256*n_frames, bias = True)                         # 1, B*64 (after .view(): B, 64, 2, 2)
 
         self.convT4 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B, 64, 4, 4
         self.convT3 = nn.ConvTranspose2d(64, 32, 3, 2, 1, 1)                       # B, 32, 8, 8
@@ -279,9 +281,19 @@ class dynamicVAE32(nn.Module):
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))
-        mu = self.fc_enc_mu(x.view(-1, 256*self.n_frames))
-        D = self.fc_enc_D(x.view(-1, 256*self.n_frames))
-        B = self.fc_enc_B(x.view(-1 ,256*self.n_frames))
+        
+        x = x.view(-1, self.n_frames,256)
+        mu = self.fc_enc_mu(x)
+        D = self.fc_enc_D(x)
+        B = self.fc_enc_B(x[:,:2,:].view(-1,2*256)).view(-1,1,self.n_latent*self.n_latent)
+        for t in range(1,self.n_frames-1):
+            B = torch.cat((B, self.fc_enc_B(x[:,t:(t+2),:].view(-1,2*256)).view(-1,1,self.n_latent*self.n_latent)),1)
+        
+        # output shapes now:
+        #mu.shape = [64,n_frames,10]
+        #D.shape = [64,n_frames,100]
+        #B.shape = [64,n_frames-1,100]
+        
         return mu, D, B
 
     def decode(self, z):
@@ -296,3 +308,6 @@ class dynamicVAE32(nn.Module):
         mu, D, B = self.encode(x)
         z, covariance_mats, precision_mats = self.reparametrize(mu, D, B)
         return self.decode(z), mu, covariance_mats, precision_mats
+
+m = dynamicVAE32()
+m(torch.randn(64,10,1,32,32))
