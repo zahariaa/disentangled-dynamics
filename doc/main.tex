@@ -73,7 +73,17 @@ We propose that a representation which factorizes static properties and their dy
 
 \section{Experiments}
 
+In order to asses how incorporating assumptions about dynamics into models of disentanglement, we must to first assess the level of disentanglement existing models can achieve in extremely simple settings where perfect disentanglement should be achievable. We constructed a simple dataset in which each image contains a white circle are drawn over an isotropic Gaussian (see figure~\ref{fig:dataset}). The circles are awesome.
 
+
+\begin{figure}%[t!]
+  % \begin{center}
+     \includegraphics[width=3.375in]{entangle_analysis_supervised_anddata.png}
+     \includegraphics[width=3.375in]{entangle_analysis_betaVAE.png}
+  % \end{center}
+  \caption{\textbf{Circles dataset and varying levels of entangled representations. [PLACEHOLDER!]}}{(middle, but will be top) The circles dataset, with one generating factor changing in each column (from left to right: circle horizontal and vertical locations, Gaussian horizontal and vertical locations). (top, but will be middle) A perfectly disentangled representation. As one generative factor linearly increases, one unique latent variable also linearly increases while the rest are constant. (bottom) In entangled representations, as one generative factor changes, multiple latent factors change.}
+  \label{fig:dataset}
+\end{figure}
 
 \bigskip
 
