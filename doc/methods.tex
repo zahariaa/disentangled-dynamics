@@ -32,8 +32,8 @@ The approximate posterior for a given time point $t$ is an isotropic Gaussian (f
 In the first case, eigenvalues of $A_t$ can change with every time-point and the mean and eigenvalues are parametrized by a neuronal network:
 
 \begin{align*}
-    \Lambda_t & = \text{NN}_\phi_\Lambda(\textbf{x}_t, \textbf{x}_{t-1}) \\
-    \mu_t & = \text{NN}_\phi_\mu(\textbf{x}_t) \\
+    \Lambda_t & = \text{NN}_{\phi_\Lambda}(\textbf{x}_t, \textbf{x}_{t-1}) \\
+    \mu_t & = \text{NN}_{\phi_\mu}(\textbf{x}_t) \\
 \end{align*}
 
 \subsection{Constraining dynamics}
