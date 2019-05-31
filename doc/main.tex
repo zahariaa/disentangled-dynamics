@@ -73,9 +73,6 @@ We propose that a representation which factorizes static properties and their dy
 
 \section{Experiments}
 
-In order to asses how incorporating assumptions about dynamics into models of disentanglement, we must to first assess the level of disentanglement existing models can achieve in extremely simple settings where perfect disentanglement should be achievable. We constructed a simple dataset in which each image contains a white circle are drawn over an isotropic Gaussian (see figure~\ref{fig:dataset}). The circles are awesome.
-
-
 \begin{figure}%[t!]
   % \begin{center}
      \includegraphics[width=3.375in]{entangle_analysis_supervised_anddata.png}
@@ -84,6 +81,13 @@ In order to asses how incorporating assumptions about dynamics into models of di
   \caption{\textbf{Circles dataset and varying levels of entangled representations. [PLACEHOLDER!]}}{(middle, but will be top) The circles dataset, with one generating factor changing in each column (from left to right: circle horizontal and vertical locations, Gaussian horizontal and vertical locations). (top, but will be middle) A perfectly disentangled representation. As one generative factor linearly increases, one unique latent variable also linearly increases while the rest are constant. (bottom) In entangled representations, as one generative factor changes, multiple latent factors change.}
   \label{fig:dataset}
 \end{figure}
+
+In order to assess the effects of adding dynamics into models of disentanglement, we must to first assess the level of disentanglement existing models can achieve in extremely simple settings where perfect disentanglement should be achievable. We constructed a simple dataset in which each image (32x32 pixels) contains a white circle are drawn over an isotropic Gaussian (see figure~\ref{fig:dataset}a). We randomly varied the positions of each objects while keeping size and intensity fixed. Therefore, there are 4 generative factors for this dataset: the horizontal and vertical position of each object. An ideal encoder for these images that is perfectly disentangled is one with four latent variables, where %a single variable uniquely and independently changes proportionally when a single generative factor is changed, for all four factors
+each one uniquely and linearly maps to one of the four generative factors (see figure~\ref{fig:dataset}b). An entangled representation would be one in which multiple latent variables change when varying a single generative factor, and potentially nonlinearly (see figure~\ref{fig:dataset}c).
+
+As a basic control, we wanted to verify that a perfectly disentangled encoder could be achieved by training a simple encoder network with supervision to map its four latent variables directly to the generative factors. The encoder network has four convolutional (conv) layers, each with a stride of 2, and a rectified linear (ReLU) output nonlinearity. It is followed by a fully connected (FC) layer that maps to the four latent factors. Figure~\ref{fig:dataset}b indeed shows the results from this experiment, demonstrating that this architecture is capable of perfect disentanglement on this very simple dataset.
+
+We next trained $\beta$-VAEs with the same encoder network architecture and a decoder network with the same-sized FC and deconvolutional (deconv) layers in reverse, for different $\beta$ values. The resulting representations are entangled (figure~\ref{fig:dataset}c), and become less informative for higher $\beta$ values.
 
 \bigskip
 
