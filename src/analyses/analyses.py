@@ -56,43 +56,90 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
     return yhat,x
 
 # Plot sweeps through model
-def plotCircleSweep(yhat,x=None,nmodels=None):
+def plotCircleSweep(x=None,nimgs=5):
     """plotCircleSweep(yhat,x):
+        plots a subset of stimuli,
+        generated from sweepCircleLatents()
+        ---e.g.,---
+        yhat, x = sweepCircleLatents(vae)
+        plotCircleSweep(x)
+        alternatively,
+        plotCircleSweep(sweepCircleLatents(vae))
+    """
+    # Initialization
+    if x is None and type(nimgs) is tuple:
+        x    = yhat[1]
+    
+    # Start a-plottin'
+    fig, ax = plt.subplots(nimgs,4,figsize=(9, 15), dpi= 80, facecolor='w', edgecolor='k')
+    
+    for latentdim in range(4):
+        cnt = -1
+        for img in np.linspace(0,15,nimgs).astype(int):
+            cnt+=1
+            plt.sca(ax[cnt,latentdim])
+            plt.set_cmap('gray')
+            ax[cnt,latentdim].imshow(
+                x[latentdim*16+img,:,:,:].squeeze(), vmin=0, vmax=1)
+            plt.axis('off')
+            
+    return fig, ax
+
+def plotLatentsSweep(yhat,nmodels=1):
+    """plotLatentsSweep(yhat):
         plots model latents and a subset of the corresponding stimuli,
         generated from sweepCircleLatents()
         ---e.g.,---
         yhat, x = sweepCircleLatents(vae)
         plotCircleSweep(yhat,x)
         alternatively,
-        plotCircleSweep(sweepCircleLatents(vae))
+        plotLatentsSweep(sweepCircleLatents(vae))
     """
     # Initialization
-    if x is None and type(yhat) is tuple:
-        x    = yhat[1]
+    if type(yhat) is tuple:
         yhat = yhat[0]
-
-    if nmodels is None:
-        nmodels = 1
-        yhat = [yhat]
-    
-    nimgs = 5
     
     # Start a-plottin'
-    fig, ax = plt.subplots(nimgs+nmodels,4,figsize=(9, 15), dpi= 80, facecolor='w', edgecolor='k')
+    fig, ax = plt.subplots(nmodels,4,figsize=(9, 15), dpi= 80, facecolor='w', edgecolor='k', sharey='row',sharex='col')
     
     for latentdim in range(4):
-        for imodel in range(nmodels):
-            plt.sca(ax[imodel,latentdim])
-            plt.plot(yhat[imodel][latentdim*16+np.arange(0,16),:].detach().numpy())
+        if nmodels > 1:
+            for imodel in range(nmodels):
+                plt.sca(ax[imodel,latentdim])
+                plt.plot(yhat[imodel][latentdim*16+np.arange(0,16),:].detach().numpy())
+#                 ax[imodel,latentdim].set_aspect(1./ax[imodel,latentdim].get_data_ratio())
 
-        cnt = -1
-        for img in np.linspace(0,15,nimgs).astype(int):
-            cnt+=1
-            plt.sca(ax[nmodels+cnt,latentdim])
-            plt.set_cmap('gray')
-            ax[nmodels+cnt,latentdim].imshow(
-                x[latentdim*16+img,:,:,:].squeeze(), vmin=0, vmax=1)
-            plt.axis('off')
+
+                ax[imodel,latentdim].spines['top'].set_visible(False)
+                ax[imodel,latentdim].spines['right'].set_visible(False)
+                if latentdim>0:
+                    ax[imodel,latentdim].spines['left'].set_visible(False)
+#                     ax[imodel,latentdim].set_yticklabels([])
+                    ax[imodel,latentdim].tick_params(axis='y', length=0)
+
+    #             if imodel<nmodels-1 or latentdim>0:
+                ax[imodel,latentdim].spines['bottom'].set_visible(False)
+                ax[imodel,latentdim].set_xticklabels([])
+                ax[imodel,latentdim].tick_params(axis='x', length=0)
+        else:
+            imodel=0
+            plt.sca(ax[latentdim])
+            plt.plot(yhat[latentdim*16+np.arange(0,16),:].detach().numpy())
+            ax[latentdim].set_aspect(1./ax[latentdim].get_data_ratio())
+
+
+            ax[latentdim].spines['top'].set_visible(False)
+            ax[latentdim].spines['right'].set_visible(False)
+            if latentdim>0:
+                ax[latentdim].spines['left'].set_visible(False)
+                ax[latentdim].tick_params(axis='y', length=0)
+
+#             if imodel<nmodels-1 or latentdim>0:
+            ax[latentdim].spines['bottom'].set_visible(False)
+            ax[latentdim].set_xticklabels([])
+            ax[latentdim].tick_params(axis='x', length=0)
+            
+            
     return fig, ax
 
 def colorAxisNormalize(colorbar):
