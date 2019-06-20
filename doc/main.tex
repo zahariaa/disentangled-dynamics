@@ -7,16 +7,13 @@
 \title{Analyzing disentanglement of visual objects in semi-supervised neural networks}
  
 \author{{\large \bf Andrew David Zaharia (andrew.z@columbia.edu)}$^{1,\star}$
-  \AND {\large \bf Benjamin Peters (benjamin.peters@columbia.edu)}$^{1,\star}$
+  \and {\large \bf Benjamin Peters (benjamin.peters@columbia.edu)}$^{1,\star}$
   \AND {\large \bf John Cunningham (jpc2181@columbia.edu)}$^2$
   \AND {\large \bf Nikolaus Kriegeskorte (n.kriegeskorte@columbia.edu)}$^{1,3}$
-  \AND $^1$ Mortimer B. Zuckerman Mind Brain Behavior Institute\\
-  Columbia University, New York, NY 10027, USA\\
-  $^2$ Department of Statistics and Grossman Center\\
-  Columbia University, New York, NY 10027, USA\\
-  $^3$ Departments of Psychology, Neuroscience, and Electrical Engineering\\
-  Columbia University, New York, NY 10027, USA
-  \AND $^\star$ These authors contributed equally to this work}
+  \AND $^1$ Mortimer B. Zuckerman Mind Brain Behavior Institute, Columbia University, New York, NY 10027, USA\\
+  $^2$ Department of Statistics and Grossman Center, Columbia University, New York, NY 10027, USA\\
+  $^3$ Departments of Psychology, Neuroscience, and Electrical Engineering, Columbia University, New York, NY 10027, USA\\
+  $^\star$ These authors contributed equally to this work}
 
 %% AZ additions
 \usepackage{graphicx,xcolor}
@@ -34,7 +31,7 @@
 \section{Abstract}
 {
 \bf
-A fundamental goal of visual systems is to condense visual stimuli into compact representations of relevant information they contain. Ideally, these representations would consist of the independent ``generative factors'' that fully determine, on a semantic level, the visual input. Such a ``disentangled'' representation could consist of the identity of a background scene, and the identity, position, pose, and size of an object. Recent research in deep neural networks (DNNs) has focused on achieving disentangled representations, through unsupervised learning, of single objects or faces in isolation. We trained and analyzed a popular DNN model of disentanglement, the $\beta$-variational autoencoder ($\beta$-VAE) on a new dataset, containing a ``foreground'' white circle and ``background'' isotropic Gaussian. We show that the neural network autoencoder architecture we use can achieve a perfectly disentangled latent representation with supervised learning, but only achieves partial disentanglement when using the unsupervised \bvae loss function. On our dataset, higher $\beta$ results in higher reconstruction loss and greater entanglement. We propose that further inductive bias is needed to achieve better disentanglement, such as a representation which factorizes static properties and their dynamics.
+A fundamental goal of visual systems is to condense images into compact representations of the relevant information they contain. Ideally, these representations would consist of the independent ``generative factors'' that fully determine, on a semantic level, the visual input. Such a ``disentangled'' representation could consist of the identity of a background scene, and the identity, position, pose, and size of an object. Recent research in deep neural networks (DNNs) has focused on achieving disentangled representations, through unsupervised learning, of single objects or faces in isolation. We trained and analyzed a popular DNN model of disentanglement, the $\beta$-variational autoencoder ($\beta$-VAE) on a new dataset, containing a ``foreground'' white circle and ``background'' isotropic Gaussian. We show that the neural network autoencoder architecture we use can achieve a perfectly disentangled latent representation with supervised learning, but only achieves partial disentanglement when using the unsupervised \bvae loss function. On our dataset, higher $\beta$ values result in higher reconstruction loss and greater entanglement. We propose that further inductive bias is needed to achieve better disentanglement, such as a representation which factorizes static properties and their dynamics.
 }
 \begin{quote}
 \small
@@ -43,14 +40,14 @@ disentanglement; unsupervised learning; deep neural network; autoencoder; object
 \end{quote}
 
 
-\section{Introduction}
+%\section{Introduction}
 
- \textit{Disentangled} visual representations are ones which compactly and independently encode the true generative factors of the world \cite{DiCarlo2007,Bengio2009}. In object recognition for example, such factors could be the object's identity, size, rotation, lighting, and color.
+ \textit{Disentangled} visual representations compactly and independently encode the true generative factors of the world \cite{DiCarlo2007,Bengio2009}. For object recognition, such factors could be their identity, size, rotation, and color.
 
- Recent work on disentanglement in DNNs has focused on the unsupervised learning setting. The $\beta$-variational autoencoder (\bvae) claimed to learn more disentangled representations by treating the reconstruction error term in the VAE loss function as a regularizer \cite{Higgins2017,Kingma2014}. This approach, however, is quite general and do not necessarily lead to truly disentangled representations.
+ Recent work on disentanglement in DNNs has focused on the unsupervised learning setting. The $\beta$-VAE was designed to learn more disentangled representations by treating the reconstruction error term in the VAE loss function as a regularizer \cite{Higgins2017,Kingma2014}. Here we explore to what extent this approach achieves disentanglement in a scenario where such representations are achievable with the chosen architecture.
 
 
-\section{Experiments}
+%\section{Experiments}
 
 % \begin{figure}[h!]
 %   % \begin{center}
@@ -60,13 +57,13 @@ disentanglement; unsupervised learning; deep neural network; autoencoder; object
 %   \label{fig:dataset}
 % \end{figure}
 
-We assessed the level of disentanglement existing models can achieve in extremely simple settings where perfect disentanglement should be achievable by creating a new, simple dataset. We randomly varied the positions of one circle and one Gaussian while keeping size and intensity fixed. Therefore, there are 4 generative factors for this dataset: the horizontal and vertical position of each object. An ideal encoder for these images that is perfectly disentangled is one with four latent variables, where each one uniquely maps to one of the four generative factors. An entangled representation would be one in which multiple latent variables change when varying a single generative factor, and potentially nonlinearly.
+We generated images by randomly varying the positions of a circular disc occluding and a larger isotropic Gaussian, while keeping size and intensity fixed. There are 4 generative factors for this dataset: the horizontal and vertical position of the two objects. An ideal encoder for these images that is perfectly disentangled is one with four latent variables, where each one uniquely maps to one of the four generative factors. In an entangled representation, multiple latent variables will change when varying a single generative factor.
 
-As a basic control, we wanted to verify that a perfectly disentangled encoder could be achieved by training a simple encoder network with supervision to map its four latent variables directly to the generative factors. We found that this architecture is capable of representing the underlying generative factors in a perfectly disentangled way.
+We started with a simple, 4-layer convolutional encoder network with supervised training to ensure that a perfectly disentangled encoder is achievable. We found this encoder can extract and perfectly disentangle the generating factors.
 
-Next, we trained \bvae with the same encoder network architecture and a decoder network with the size-matched fully connected and deconvolutional layers in reverse, for different $\beta$ values. The resulting representations are entangled, and become less informative for higher $\beta$ values. The level of disentanglement and reconstruction quality in \bvae further declined with increasing $\beta$. This is somewhat at odds with previous predictions, in which one should trade-off with the other \cite{Higgins2017,Alemi2017}, but is likely due to our choice of a low number of latent variables.
+Next, we trained a \bvae with the same encoder network architecture and a decoder network with size-matched fully connected and deconvolutional layers in reverse order, for different $\beta$. The resulting representations are entangled, and become less informative for higher $\beta$. The level of disentanglement and reconstruction quality in \bvae further declined with increasing $\beta$, consistent with previous predictions.
 
-Objects are not static; they exist in a continuous world. The putative generative factors that determine an object’s appearance are likely to remain stable or vary smoothly and slowly over time \cite{Wiskott2002}. This inductive bias could support feature learning in biological systems. We will train and analyze an autoencoder that that a representation which factorizes static properties and their dynamics will lead to better disentanglement.
+In natural experience, objects are dynamic. The generative factors determining an object's appearance are likely to remain temporally stable or vary smoothly and slowly \cite{Wiskott2002}. Such prior knowledge, as an inductive bias, could support feature learning in biological systems. We will train and analyze an autoencoder, designed to factorize static object properties and their dynamics, and predict that it will achieve better disentanglement.
 
 \bigskip
 
