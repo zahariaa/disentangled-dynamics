@@ -63,3 +63,7 @@ By not using a deconvolution network but a "spatial broadcast decoder", they are
 
 [Tschannen18: Recent Advances in Autoencoder-Based Representation Learning](http://bayesiandeeplearning.org/2018/papers/151.pdf)
 Good overview over recent VAE approaches.
+
+
+Potentially interesting:
+[Exarchakis2017: Discrete Sparse Coding](https://exarchakis.net/files/papers/NECO-09-16-2696R2-PDF.pdf)
