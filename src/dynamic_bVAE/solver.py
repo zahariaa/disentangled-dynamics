@@ -23,6 +23,10 @@ from models import dynamicVAE32
 from models import loss_function, reconstruction_loss, kl_divergence
 from models import normalized_beta_from_beta, beta_from_normalized_beta
 
+# For dynamic loss plots
+import matplotlib
+import matplotlib.pyplot as plt
+from IPython.display import clear_output
 
 class DataGather(object):
     """ 
@@ -162,7 +166,7 @@ class Solver(object):
         
         
         
-    def train(self):
+    def train(self,plotmode=False):
         
         pbar = tqdm(total=self.max_iter)
         pbar.update(self.global_iter)
@@ -177,6 +181,8 @@ class Solver(object):
         running_total_kld = 0.0
         running_dim_wise_kld = 0.0
         running_mean_kld = 0.0
+        plot_kld = []
+        plot_recon_loss = []
         
         while not out:
             for [samples,latents] in self.train_loader: # not sure how long the train_loader spits out data (possibly infinite?)
@@ -232,7 +238,36 @@ class Solver(object):
                     running_recon_loss_trainstats = 0.0
                     running_total_kld = 0.0
                     running_dim_wise_kld = 0.0
-                    running_mean_kld = 0.0                    
+                    running_mean_kld = 0.0
+                    
+                    if plotmode:    # plot mini-batches
+                        plot_kld.append(total_kld.detach().cpu().numpy())
+                        plot_recon_loss.append(recon_loss.item())
+                        # PLOT!
+                        clear_output(wait=True)
+                        plt.figure(figsize=(10,5))
+                        plt.subplot(2, 2, 1)
+                        plt.plot(plot_kld)
+                        plt.xlabel('minibatches')
+                        plt.title('Total KL-divergence')
+
+                        plt.subplot(2, 2, 2)
+                        plt.plot(plot_recon_loss)
+                        plt.xlabel('minibatches')
+                        plt.title('Reconstruction training loss')
+
+#                         import ipdb; ipdb.set_trace()
+
+                        plt.subplot(2, 2, 3)
+                        plt.imshow(predicted_batch[0][0][0].detach().cpu().numpy())
+                        plt.set_cmap('gray')
+            
+                        plt.subplot(2, 2, 4)
+                        plt.imshow(predicted_batch[1][0][0].detach().cpu().numpy())
+                        plt.set_cmap('gray')
+
+                        plt.tight_layout()
+                        plt.show()
                 
                 """ /end of non-generic part"""
 
