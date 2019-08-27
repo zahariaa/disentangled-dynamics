@@ -152,7 +152,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_nlatent={}_betanorm={}_{}_last'.format(self.model.lower(), self.n_latent, self.beta_norm, args.dataset.lower())
+        self.ckpt_name = '{}_nlatent={}_betanorm={}_gamma={}_{}_last'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -173,9 +173,8 @@ class Solver(object):
         
     def train(self,plotmode=False):
         
-        if not plotmode:
-            pbar = tqdm(total=self.max_iter)
-            pbar.update(self.global_iter)
+        pbar = tqdm(total=self.max_iter)
+        pbar.update(self.global_iter)
         
         out = False        
 
