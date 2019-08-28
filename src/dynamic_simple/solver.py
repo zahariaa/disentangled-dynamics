@@ -166,7 +166,7 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_nlatent={}_betanorm={}_{}'.format(self.model.lower(), self.n_latent, self.beta_norm, args.dataset.lower())
+        self.trainstats_fname = '{}_nlatent={}_betanorm={}_gamma={}_{}'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         
