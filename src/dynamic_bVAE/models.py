@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-bVAE (Higgings, 2017) or inspired by the paper
+bVAE (Higgins, 2017) or inspired by the paper
 
 """
 
