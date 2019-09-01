@@ -193,7 +193,7 @@ class dynamicVAE32(nn.Module):
         self.n_latent = n_latent
         self.img_channels = img_channels
         self.n_frames = n_frames #=T
-        self.alpha = nn.Parameter(torch.FloatTensor(1))
+        self.alpha = 1.0 #nn.Parameter(torch.FloatTensor(1))
 
         # encoder
         self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B*T, 32, 16, 16

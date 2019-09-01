@@ -10,8 +10,9 @@ Created on Tue May 14 20:48:00 2019
 import numpy as np
 import subprocess
 
-gamma_values = np.logspace(-4, 4, 5, base=10)
 normalized_beta_values = np.logspace(np.log(.001), np.log(5), 6, base=np.e)
+gamma_values = np.logspace(-4, 4, 5, base=10)
+gamma_values = np.insert(gamma_values,0,0)
 
 for _, ng in enumerate(gamma_values):
 
@@ -20,4 +21,4 @@ for _, ng in enumerate(gamma_values):
         g = '--gamma=%0.4f' % ng
         print(b)
         print(g)
-        subprocess.call(['python', 'main.py', b, g, '--beta_is_normalized=True', '--max_iter=50000', '--n_latent=10'])
+        subprocess.call(['python', 'main.py', b, g, '--beta_is_normalized=True', '--max_iter=50000', '--n_latent=4'])
