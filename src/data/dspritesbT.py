@@ -13,6 +13,9 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 from torchvision import transforms, utils
+# for parallel loop to cache data
+from joblib import Parallel, delayed
+import multiprocessing
 
 
 def generateLatentLinearMotion(N, n_timesteps, min_travelled_distance, min_coordinate=0., max_coordinate=1.):
@@ -70,6 +73,7 @@ class dSpriteBackgroundDatasetTime(Dataset):
             n_timesteps: number of timesteps for the movie
             min_travelled_distance: how far should the object travel at least (image assumed to have size 1 x 1. Therefore, the maximum distance travelled can be sqrt(2))
         """
+        
         self.shapetype = shapetype
         self.pixels = pixels
         
@@ -78,6 +82,10 @@ class dSpriteBackgroundDatasetTime(Dataset):
         
         self.min_travelled_distance = min_travelled_distance
         
+        # Cache the data, or load the cache if already exists
+        filename = '%s_%spix_%ststeps_%smindist.pt' % (shapetype,pixels,n_timesteps,min_travelled_distance)
+        self.root = os.path.join('../data/', filename)
+                    
         # Load dataset
         if shapetype == 'dsprite':
             raise Exception('moving dSprite is not implemented')
@@ -97,14 +105,14 @@ class dSpriteBackgroundDatasetTime(Dataset):
             """            
             self.latents_bases = [200000]
             # grid points from which background gaussian x,y coordinates are drawn
-            self.background_1d_sampling_points = np.linspace(0,1,32,dtype='float32')            
-            self.latents_values = self.generateLatentSequence()            
-            
-        
+            self.background_1d_sampling_points = np.linspace(0,1,32,dtype='float32')
+            self.latents_values = self.generateLatentSequence()
+
+
         if idx is not None:
             self.latents_values = self.latents_values[idx,:]
             self.latents_bases[0] = np.shape(self.latents_values)[0]
-        
+
         if transform is None:
             self.transform = transforms.Compose([transforms.ToPILImage(),
                                                  transforms.ToTensor()])
@@ -112,55 +120,78 @@ class dSpriteBackgroundDatasetTime(Dataset):
             self.transform = transforms.Compose([transforms.ToPILImage(),
                                                  transform,
                                                  transforms.ToTensor()])
+        # Generate all data
+        if os.path.exists(self.root):
+            self.img = torch.load(self.root)
+            return
+        else:
+            #self.img = np.ndarray(shape=(self.latents_bases[0],n_timesteps,self.n_channels,32,32), dtype='uint8')
+
+            num_cores = multiprocessing.cpu_count()
+     
+            self.img = Parallel(n_jobs=num_cores)(delayed(self.__getitem__)(idx) for idx in range(self.latents_bases[0]))
+            
+#             for idx in range(self.latents_bases[0]):
+# #                 print(self.img.shape)
+# #                 print(self.__getitem__(idx))
+#                 self.img[idx,:,:,:,:],_ = self.__getitem__(idx)
+#                 if idx % 1000 == 0:
+#                     print(idx)
+            
+            # Cache dataset
+            torch.save(self.img, self.root)
     
     def __len__(self):
         return self.latents_bases[0]
     
     
     def __getitem__(self, idx, mu=None):
-        # Set up foreground object
-        if self.shapetype == 'circle':
-            center = (0.75*self.pixels)*self.latents_values[idx,-2:,:] + np.array([1/8,1/8])[:,np.newaxis]*self.pixels
-            # create foreground movie
-            # loop over time to create succesive circle images
-            foreground = 255*self.circle2D(center[:,0])[:,:,:,np.newaxis]
-            for t in range(1,self.n_timesteps):
-                ###TODO: translate latent scale to radius
-                foreground = np.append(foreground, 255*self.circle2D(center[:,t])[:,:,:,np.newaxis], axis=3)        
-                                
-        elif self.shapetype == 'dsprite':
-            foreground = self.pick_dSprite(idx)
-        
-        # Set up background
-        mu = self.latents_values[idx,:2,:]
-        
-        # create background movie
-        bg = self.gaussian2D(mu[:,0])
-        bg = (255*bg).reshape(bg.shape+(1,)+(1,))
-        if self.background_static: # if background is static, we can save some time
-            background = np.repeat(bg,self.n_timesteps,axis=3)
-        else: # otherwise loop over background latents
-            background = bg
-            for t in range(1, self.n_timesteps):
-                bg = self.gaussian2D(mu[:,t])
-                bg = (255*bg).reshape(bg.shape+(1,)+(1,))                
-                background = np.append(background, bg, axis=3)
+        if os.path.exists(self.root):
+            return self.img[idx],self.latents_values[idx,:,:]        
+        else:
+            # Set up foreground object
+            if self.shapetype == 'circle':
+                center = (0.75*self.pixels)*self.latents_values[idx,-2:,:] + np.array([1/8,1/8])[:,np.newaxis]*self.pixels
+                # create foreground movie
+                # loop over time to create succesive circle images
+                foreground = 255*self.circle2D(center[:,0])[:,:,:,np.newaxis]
+                for t in range(1,self.n_timesteps):
+                    ###TODO: translate latent scale to radius
+                    foreground = np.append(foreground, 255*self.circle2D(center[:,t])[:,:,:,np.newaxis], axis=3)        
 
-        # Combine foreground and background
-        sample = np.clip(foreground+0.8*background,0,255).astype('uint8')
+            elif self.shapetype == 'dsprite':
+                foreground = self.pick_dSprite(idx)
 
-        # Output
-        latent = self.latents_values[idx,:,:]
-        
-        # transform indididual images sequentially
-        transf_sample = self.transform(sample[:,:,:,0]).unsqueeze(0)
-        if self.transform:
-            for t in range(1, self.n_timesteps):
-                transf_sample = torch.cat((transf_sample, self.transform(sample[:,:,:,t]).unsqueeze(0)), dim=0)
-        
-        # transf_sample: [n_timesteps, n_channels, n_resizedpixel, n_resizedpixel]
-        
-        return transf_sample,latent
+            # Set up background
+            mu = self.latents_values[idx,:2,:]
+
+            # create background movie
+            bg = self.gaussian2D(mu[:,0])
+            bg = (255*bg).reshape(bg.shape+(1,)+(1,))
+            if self.background_static: # if background is static, we can save some time
+                background = np.repeat(bg,self.n_timesteps,axis=3)
+            else: # otherwise loop over background latents
+                background = bg
+                for t in range(1, self.n_timesteps):
+                    bg = self.gaussian2D(mu[:,t])
+                    bg = (255*bg).reshape(bg.shape+(1,)+(1,))                
+                    background = np.append(background, bg, axis=3)
+
+            # Combine foreground and background
+            sample = np.clip(foreground+0.8*background,0,255).astype('uint8')
+
+            # Output
+            #latent = self.latents_values[idx,:,:]
+
+            # transform indididual images sequentially
+            transf_sample = self.transform(sample[:,:,:,0]).unsqueeze(0)
+            if self.transform:
+                for t in range(1, self.n_timesteps):
+                    transf_sample = torch.cat((transf_sample, self.transform(sample[:,:,:,t]).unsqueeze(0)), dim=0)
+
+            # transf_sample: [n_timesteps, n_channels, n_resizedpixel, n_resizedpixel]
+
+            return transf_sample#,latent
     
     
     def generateLatentSequence(self):
