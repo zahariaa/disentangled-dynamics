@@ -31,12 +31,12 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
     """
     # Initialization
     nsweep = len(latents)
-    if type(model).__name__ == 'staticVAE32' or type(model).__name__ == 'dynamicVAE32':
-        n_latent = model.n_latent
-        encoder  = model.encode
-    elif type(model).__name__ == 'encoderBVAE_like':
+    if type(model).__name__ == 'encoderBVAE_like':
         n_latent = model.fc.out_features
         encoder  = model
+    else:
+        n_latent = model.n_latent
+        encoder  = model.encode
     if def_latents is None:
         def_latents = 0.5*np.ones(n_latent)
         
@@ -49,10 +49,10 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
         x[3*nsweep+i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],def_latents[2],latents[i])
 
     # ... and evaulate them all at once
-    if type(model).__name__ == 'staticVAE32' or type(model).__name__ == 'dynamicVAE32':
-        yhat,_ = encoder(x)
-    elif type(model).__name__ == 'encoderBVAE_like':
+    if type(model).__name__ == 'encoderBVAE_like':
         yhat   = encoder(x)
+    else:
+        yhat,_ = encoder(x)
     return yhat,x
 
 # Plot sweeps through model

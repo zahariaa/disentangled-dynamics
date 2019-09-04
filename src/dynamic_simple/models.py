@@ -260,3 +260,87 @@ class dynamicVAE32(nn.Module):
         mu_pred[:,2:,:] = mu2[:,:-2,:] + self.alpha*(mu2[:,:-2,:]-mu1[:,:-2,:])
         
         return self.decode(z), mu, logvar, mu_pred.view_as(mu)
+
+class dynamicVAE32a(nn.Module):
+    """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 32x32x1
+        from Table 1 in Higgins et al., 2017, ICLR
+
+        number of latents can be adapted, spatial input dimensions are fixed
+
+    """
+
+    def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10, alpha=0.75):
+        super(dynamicVAE32a, self).__init__()
+        
+        self.n_latent = n_latent
+        self.img_channels = img_channels
+        self.n_frames = n_frames #=T
+        self.alpha = nn.Parameter(torch.FloatTensor(1))
+
+        # encoder
+        self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B*T, 32, 16, 16
+        self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)               # B*T, 32, 8, 8
+        self.conv3 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 4, 4
+        self.conv4 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = 3, stride = 2, padding = 1)               # B*T, 64, 2, 2
+
+        self.fc_enc_mu = nn.Linear(256, n_latent, bias = True)
+        self.fc_enc_mu_pred = nn.Linear(256, n_latent, bias = True)
+        self.fc_enc_logvar = nn.Linear(256, n_latent, bias = True)
+        
+        self.fc_enc_mu_pred = nn.Linear(256, n_latent, bias = True)
+
+        # decoder
+        self.fc_dec = nn.Linear(n_latent, 256, bias = True)                         # B*T, 256 (after .view(): B*T, 64, 2, 2)
+
+        self.convT4 = nn.ConvTranspose2d(64, 64, 3, 2, 1, 1)                       # B*T, 64, 4, 4
+        self.convT3 = nn.ConvTranspose2d(64, 32, 3, 2, 1, 1)                       # B*T, 32, 8, 8
+        self.convT2 = nn.ConvTranspose2d(32, 32, 3, 2, 1, 1)                       # B*T, 32, 16, 16
+        self.convT1 = nn.ConvTranspose2d(32, img_channels, 3, 2, 1, 1)             # B*T, img_channels, 32, 32
+
+        self.weight_init()
+
+    def weight_init(self):
+        for m in self._modules:
+            kaiming_init(m)
+
+    def reparametrize(self, mu, logvar):
+        std = torch.exp(0.5*logvar)
+        eps = torch.randn_like(std)
+        return mu + eps*std
+
+    def encode(self, x):
+        x = x.view(-1,self.img_channels,x.shape[-2],x.shape[-1])
+        x = torch.relu(self.conv1(x))
+        x = torch.relu(self.conv2(x))
+        x = torch.relu(self.conv3(x))
+        x = torch.relu(self.conv4(x))        
+        mu = self.fc_enc_mu(x.view(-1, 256))
+        logvar = self.fc_enc_logvar(x.view(-1, 256))
+        return mu, logvar
+
+    def decode(self, z):
+        
+        x = self.fc_dec(z).view(-1,64,2,2)
+        x = torch.nn.functional.elu(self.convT4(x))
+        x = torch.nn.functional.elu(self.convT3(x))
+        x = torch.nn.functional.elu(self.convT2(x))
+        x = torch.nn.functional.sigmoid(self.convT1(x)) # maybe use sigmoid instead here?
+        x = x.view(-1,self.n_frames,self.img_channels,x.shape[-2],x.shape[-1])
+        return x
+    
+    def forward(self, x):
+        mu, logvar = self.encode(x)
+        
+        z = self.reparametrize(mu, logvar)
+
+        ## Set up mu prediction variables here
+        mu1 = mu.view(-1,self.n_frames,self.n_latent)
+        mu2 = torch.zeros_like(mu1)
+        mu_pred = torch.zeros_like(mu1)
+        # Compute prediction
+        mu2[:,:-1,:] = mu1[:,1:,:]
+        mu_pred[:,2:,:] = mu2[:,:-2,:] + self.alpha*(mu2[:,:-2,:]-mu1[:,:-2,:])
+        
+        return self.decode(z), mu, logvar, mu_pred.view_as(mu)
+
+    
