@@ -19,9 +19,8 @@ import sys
 sys.path.append("..") # Adds higher directory to python modules path.
 
 from data.dspritesbT import dSpriteBackgroundDatasetTime
-from models import dynamicVAE32
+from models import dynamicAE32
 from models import loss_function, reconstruction_loss, kl_divergence, prediction_loss
-from models import normalized_beta_from_beta, beta_from_normalized_beta
 
 # For dynamic loss plots
 import matplotlib
@@ -96,15 +95,7 @@ class Solver(object):
         
         self.image_size = args.image_size
         self.n_latent = args.n_latent
-        self.img_channels = args.img_channels
-        
-        # beta for beta VAE
-        if args.beta_is_normalized:
-            self.beta_norm = args.beta
-            self.beta = beta_from_normalized_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)
-        else:
-            self.beta = args.beta
-            self.beta_norm = normalized_beta_from_beta(self.beta,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)            
+        self.img_channels = args.img_channels            
             
         self.gamma = args.gamma
         
@@ -120,9 +111,9 @@ class Solver(object):
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
-        if args.model.lower() == "dynamicvae32":
-            net = dynamicVAE32
-            self.modeltype = 'dynamicVAE'
+        if args.model.lower() == "dynamicae32":
+            net = dynamicAE32
+            self.modeltype = 'dynamicAE'
         else:
             raise Exception('model "%s" unknown' % args.model)
             
@@ -152,7 +143,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_nlatent={}_betanorm={}_gamma={}_{}_last'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
+        self.ckpt_name = '{}_nlatent={}_gamma={}_{}_last'.format(self.model.lower(), self.n_latent, self.gamma, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -166,7 +157,7 @@ class Solver(object):
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
             os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_nlatent={}_betanorm={}_gamma={}_{}'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
+        self.trainstats_fname = '{}_nlatent={}_gamma={}_{}'.format(self.model.lower(), self.n_latent, self.gamma, args.dataset.lower())
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         
@@ -205,7 +196,7 @@ class Solver(object):
                 img_batch, _ = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
-                if self.modeltype == 'dynamicVAE':
+                if self.modeltype == 'dynamicAE':
                     input_batch = img_batch
                     output_batch = img_batch
 
@@ -216,7 +207,7 @@ class Solver(object):
                 total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, logvar)
                 pred_loss = self.prediction_loss(mu, mu_pred)
                 
-                actLoss = self.loss(recon_loss=recon_loss, total_kld=total_kld, pred_loss=pred_loss, beta = self.beta, gamma = self.gamma)
+                actLoss = self.loss(recon_loss=recon_loss, pred_loss=pred_loss, gamma = self.gamma)
                 
                 actLoss.backward()
                 self.optim.step()                

@@ -43,7 +43,7 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
     else:
         recon_loss = None
         
-    return recon_loss    
+    return recon_loss
 
 def kl_divergence(mu, logvar):
     """
@@ -67,50 +67,10 @@ def kl_divergence(mu, logvar):
 def prediction_loss(mu,mu_pred):
     return 0.5*torch.sum((mu[:2,:]-mu_pred[:2,:])**2)
 
-def loss_function(recon_loss, total_kld, pred_loss, beta = 1, gamma=1):
+def loss_function(recon_loss, pred_loss, gamma=1):
     
-#     print('recon={}, kld={}, pred={}'.format(recon_loss, total_kld, pred_loss))
-    beta_vae_loss = recon_loss + beta*total_kld + gamma*pred_loss
-
-    return beta_vae_loss
-
-def beta_from_normalized_beta(beta_normalized, N, M):
-    """
-       input:
-           beta_normalized
-           N: total number of values in each input image (pixels times channels)
-           M: number of latent dimensions
-    
-        computes beta = beta_normalized * N / M
-        
-        given the relationship:
-            
-            \beta_\text{norm} = \frac{\beta M}{N}
-            
-            from the Higgins, 2017, bVAE paper (p. 15)
-    """
-    
-    beta = beta_normalized * N / M
-    return beta
-
-def normalized_beta_from_beta(beta, N, M):
-    """
-       input:
-           beta
-           N: total number of values in each input image (pixels times channels)
-           M: number of latent dimensions
-    
-        computes beta_normalized = beta * latent_code_size / image_size
-        
-        given the relationship:
-            
-            \beta_\text{norm} = \frac{\beta M}{N}
-            
-            from the Higgins, 2017, bVAE paper (p. 15)
-    """
-    
-    beta_normalized = beta * M / N
-    return beta_normalized
+#     print('recon={}, pred={}'.format(recon_loss, pred_loss))
+    return recon_loss + gamma*pred_loss
 
 class dynamicVAE64(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 64x64x1
@@ -179,7 +139,7 @@ class dynamicVAE64(nn.Module):
 
 
 
-class dynamicVAE32(nn.Module):
+class dynamicAE32(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 32x32x1
         from Table 1 in Higgins et al., 2017, ICLR
 
@@ -188,7 +148,7 @@ class dynamicVAE32(nn.Module):
     """
 
     def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10, alpha=0.75):
-        super(dynamicVAE32, self).__init__()
+        super(dynamicAE32, self).__init__()
         
         self.n_latent = n_latent
         self.img_channels = img_channels
@@ -204,8 +164,6 @@ class dynamicVAE32(nn.Module):
         self.fc_enc_mu = nn.Linear(256, n_latent, bias = True)
         self.fc_enc_mu_pred = nn.Linear(256, n_latent, bias = True)
         self.fc_enc_logvar = nn.Linear(256, n_latent, bias = True)
-        
-        self.fc_enc_mu_pred = nn.Linear(256, n_latent, bias = True)
 
         # decoder
         self.fc_dec = nn.Linear(n_latent, 256, bias = True)                         # B*T, 256 (after .view(): B*T, 64, 2, 2)
