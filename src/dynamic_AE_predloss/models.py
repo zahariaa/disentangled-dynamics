@@ -45,25 +45,6 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
         
     return recon_loss
 
-def kl_divergence(mu, logvar):
-    """
-     from https://github.com/1Konny/Beta-VAE/blob/master/solver.py
-     
-    """    
-    batch_size = mu.size(0)
-    assert batch_size != 0
-    if mu.data.ndimension() == 4:
-        mu = mu.view(mu.size(0), mu.size(1))
-    if logvar.data.ndimension() == 4:
-        logvar = logvar.view(logvar.size(0), logvar.size(1))
-
-    klds = -0.5*(1 + logvar - mu.pow(2) - logvar.exp())
-    total_kld = klds.sum(1).mean(0, keepdim=True)
-    dimension_wise_kld = klds.mean(0)
-    mean_kld = klds.mean(1).mean(0, keepdim=True)
-    
-    return total_kld, dimension_wise_kld, mean_kld
-
 def prediction_loss(mu,mu_pred):
     return 0.5*torch.sum((mu[:2,:]-mu_pred[:2,:])**2)
 
@@ -163,7 +144,6 @@ class dynamicAE32(nn.Module):
 
         self.fc_enc_mu = nn.Linear(256, n_latent, bias = True)
         self.fc_enc_mu_pred = nn.Linear(256, n_latent, bias = True)
-        self.fc_enc_logvar = nn.Linear(256, n_latent, bias = True)
 
         # decoder
         self.fc_dec = nn.Linear(n_latent, 256, bias = True)                         # B*T, 256 (after .view(): B*T, 64, 2, 2)
@@ -179,11 +159,6 @@ class dynamicAE32(nn.Module):
         for m in self._modules:
             kaiming_init(m)
 
-    def reparametrize(self, mu, logvar):
-        std = torch.exp(0.5*logvar)
-        eps = torch.randn_like(std)
-        return mu + eps*std
-
     def encode(self, x):
         x = x.view(-1,self.img_channels,x.shape[-2],x.shape[-1])
         x = torch.relu(self.conv1(x))
@@ -191,11 +166,9 @@ class dynamicAE32(nn.Module):
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))        
         mu = self.fc_enc_mu(x.view(-1, 256))
-        logvar = self.fc_enc_logvar(x.view(-1, 256))
-        return mu, logvar
+        return mu
 
     def decode(self, z):
-        
         x = self.fc_dec(z).view(-1,64,2,2)
         x = torch.nn.functional.elu(self.convT4(x))
         x = torch.nn.functional.elu(self.convT3(x))
@@ -205,9 +178,7 @@ class dynamicAE32(nn.Module):
         return x
     
     def forward(self, x):
-        mu, logvar = self.encode(x)
-        
-        z = self.reparametrize(mu, logvar)
+        mu = self.encode(x)
 
         ## Set up mu prediction variables here
         mu1 = mu.view(-1,self.n_frames,self.n_latent)
@@ -217,4 +188,4 @@ class dynamicAE32(nn.Module):
         mu2[:,:-1,:] = mu1[:,1:,:]
         mu_pred[:,2:,:] = mu2[:,:-2,:] + self.alpha*(mu2[:,:-2,:]-mu1[:,:-2,:])
         
-        return self.decode(z), mu, logvar, mu_pred.view_as(mu)
+        return self.decode(mu), mu, mu_pred.view_as(mu)
