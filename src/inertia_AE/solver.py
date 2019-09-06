@@ -16,11 +16,10 @@ import os
 import pickle
 
 import sys
-sys.path.append("..") # Adds higher directory to python modules path.
+from models import inertiaAE32, loss_function, reconstruction_loss, prediction_loss
 
+sys.path.append("..") # Adds higher directory to python modules path.
 from data.dspritesbT import dSpriteBackgroundDatasetTime
-from models import dynamicAE32
-from models import loss_function, reconstruction_loss, prediction_loss
 
 # For dynamic loss plots
 import matplotlib
@@ -107,9 +106,9 @@ class Solver(object):
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
-        if args.model.lower() == "dynamicae32":
-            net = dynamicAE32
-            self.modeltype = 'dynamicAE'
+        if args.model.lower() == "inertiaae32":
+            net = inertiaAE32
+            self.modeltype = 'inertiaAE'
         else:
             raise Exception('model "%s" unknown' % args.model)
             
@@ -187,17 +186,17 @@ class Solver(object):
                 img_batch, _ = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
-                if self.modeltype == 'dynamicAE':
+                if self.modeltype == 'inertiaAE':
                     input_batch = img_batch
                     output_batch = img_batch
 
                                     
-                predicted_batch, mu, mu_pred = self.net(input_batch)
+                predicted_batch, mu, mu_enc, mu_pred = self.net(input_batch)
                 
                 recon_loss = self.reconstruction_loss(x = output_batch, x_recon = predicted_batch)
                 pred_loss = self.prediction_loss(mu, mu_pred)
                 
-                actLoss = self.loss(recon_loss=recon_loss, pred_loss=pred_loss, gamma = self.gamma)
+                actLoss = self.loss(recon_loss=recon_loss)
                 
                 actLoss.backward()
                 self.optim.step()                

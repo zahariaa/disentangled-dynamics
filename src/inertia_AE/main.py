@@ -37,9 +37,9 @@ def main(args):
     net.train()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='dynamic AE (reconstruction error only) plus prediction loss')
+    parser = argparse.ArgumentParser(description='inertia AE (autoencoder with representational inertia)')
 
-    parser.add_argument('--model', default='dynamicAE32', type=str, help='which model to train (dynamicAE32, dynamicAE64))')
+    parser.add_argument('--model', default='inertiaAE32', type=str, help='which model to train (inertiaAE32, inertiaAE64))')
     
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
     
-    parser.add_argument('--gamma', default=1, type=float, help='gamma hyperparameter for the prediction loss')
+    parser.add_argument('--gamma', default=1, type=float, help='gamma hyperparameter for the prediction contribution to inertia')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')
     parser.add_argument('--dataset', default='dsprites_circle', type=str, help='dataset name')

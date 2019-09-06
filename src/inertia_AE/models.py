@@ -36,10 +36,14 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
     n_frames = x.size(1)
     
     if distribution == 'bernoulli':
-        recon_loss = nn.functional.binary_cross_entropy(x_recon.view(batch_size,n_frames,x.size(2),x.size(3),x.size(4)), x, reduction='sum').div(batch_size)
+        recon_loss = nn.functional.binary_cross_entropy(
+            x_recon[:,1:,:,:,:].contiguous().view(batch_size,n_frames-2,x.size(2),x.size(3),x.size(4)),
+            x[:,2:,:,:,:].contiguous(), reduction='sum').div(batch_size)
     elif distribution == 'gaussian':
         #x_recon = nn.functional.sigmoid(x_recon)
-        recon_loss = nn.functional.mse_loss(x_recon.view(batch_size,n_frames,x.size(2),x.size(3),x.size(4)), x, reduction='sum').div(batch_size)
+        recon_loss = nn.functional.mse_loss(
+            x_recon[:,1:,:,:,:].contiguous().view(batch_size,n_frames-2,x.size(2),x.size(3),x.size(4)),
+            x[:,2:,:,:,:].contiguous(), reduction='sum').div(batch_size)
     else:
         recon_loss = None
         
@@ -48,10 +52,10 @@ def reconstruction_loss(x, x_recon, distribution='gaussian'):
 def prediction_loss(mu,mu_pred):
     return 0.5*torch.sum((mu[:2,:]-mu_pred[:2,:])**2)
 
-def loss_function(recon_loss, pred_loss, gamma=1):
+def loss_function(recon_loss):
     
-#     print('recon={}, pred={}'.format(recon_loss, pred_loss))
-    return recon_loss + gamma*pred_loss
+#     print('recon={}'.format(recon_loss))
+    return recon_loss
 
 class dynamicVAE64(nn.Module):
     """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 64x64x1
@@ -120,21 +124,22 @@ class dynamicVAE64(nn.Module):
 
 
 
-class dynamicAE32(nn.Module):
-    """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces) - image size 32x32x1
+class inertiaAE32(nn.Module):
+    """ encoder/decoder from Higgins for VAE (Chairs, 3DFaces), adapted to have
+        representational inertia, and no variational component - image size 32x32x1
         from Table 1 in Higgins et al., 2017, ICLR
 
         number of latents can be adapted, spatial input dimensions are fixed
 
     """
 
-    def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10, alpha=0.75):
-        super(dynamicAE32, self).__init__()
+    def __init__(self, n_latent = 10, img_channels = 1, n_frames = 10, gamma=0.75):
+        super(inertiaAE32, self).__init__()
         
         self.n_latent = n_latent
         self.img_channels = img_channels
         self.n_frames = n_frames #=T
-        self.alpha = 1.0 #nn.Parameter(torch.FloatTensor(1))
+        self.gamma = gamma #nn.Parameter(torch.FloatTensor(1))
 
         # encoder
         self.conv1 = nn.Conv2d(in_channels = img_channels, out_channels = 32, kernel_size = 3, stride = 2, padding = 1)     # B*T, 32, 16, 16
@@ -160,13 +165,31 @@ class dynamicAE32(nn.Module):
             kaiming_init(m)
 
     def encode(self, x):
-        x = x.view(-1,self.img_channels,x.shape[-2],x.shape[-1])
+        # all but last x make all but mu at first time point
+        x = x[:,:-1,:,:,:].contiguous().view(-1,self.img_channels,x.shape[-2],x.shape[-1])
+        # Note: if you really want to save gpu memory ops, do the above indexing in the solver
         x = torch.relu(self.conv1(x))
         x = torch.relu(self.conv2(x))
         x = torch.relu(self.conv3(x))
         x = torch.relu(self.conv4(x))        
-        mu = self.fc_enc_mu(x.view(-1, 256))
-        return mu
+        mu_enc = self.fc_enc_mu(x.view(-1, 256)) # this has T-1 frames
+        
+        #### INERTIA
+        mu_enc = mu_enc.view(-1,self.n_frames-1,self.n_latent)
+        # first mu_pred is just mu_enc
+        mu_pred = torch.zeros_like(mu_enc)
+        mu = torch.zeros_like(mu_enc)
+        mu_pred[:,0,:] = mu_enc[:,0,:]
+        # as a consequence, first mu is also just mu_enc
+        mu[:,0,:] = mu_pred[:,0,:]
+        # second mu_pred is same as first mu_pred
+        mu_pred[:,1,:] = mu_pred[:,0,:]
+        for i in range(1,self.n_frames-1):
+            mu[:,i,:] = (1-self.gamma)*mu_enc[:,i,:] + self.gamma*mu_pred[:,i,:]
+            if i < self.n_frames-2:
+                mu_pred[:,i+1,:] = 1*(mu[:,i,:] - mu[:,i-1,:]) + mu[:,i,:]
+
+        return mu, mu_enc, mu_pred
 
     def decode(self, z):
         x = self.fc_dec(z).view(-1,64,2,2)
@@ -174,18 +197,10 @@ class dynamicAE32(nn.Module):
         x = torch.nn.functional.elu(self.convT3(x))
         x = torch.nn.functional.elu(self.convT2(x))
         x = torch.nn.functional.sigmoid(self.convT1(x)) # maybe use sigmoid instead here?
-        x = x.view(-1,self.n_frames,self.img_channels,x.shape[-2],x.shape[-1])
+        x = x.view(-1,self.n_frames-1,self.img_channels,x.shape[-2],x.shape[-1])
         return x
     
     def forward(self, x):
-        mu = self.encode(x)
+        mu, mu_enc, mu_pred = self.encode(x)
 
-        ## Set up mu prediction variables here
-        mu1 = mu.view(-1,self.n_frames,self.n_latent)
-        mu2 = torch.zeros_like(mu1)
-        mu_pred = torch.zeros_like(mu1)
-        # Compute prediction
-        mu2[:,:-1,:] = mu1[:,1:,:]
-        mu_pred[:,2:,:] = mu2[:,:-2,:] + self.alpha*(mu2[:,:-2,:]-mu1[:,:-2,:])
-        
-        return self.decode(mu), mu, mu_pred.view_as(mu)
+        return self.decode(mu), mu, mu_enc, mu_pred
