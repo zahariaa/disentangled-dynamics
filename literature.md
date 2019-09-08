@@ -71,3 +71,6 @@ Potentially interesting:
 
 [Shelhamer2016: Clockwork Convnets for Video Semantic Segmentation](https://link.springer.com/chapter/10.1007/978-3-319-49409-8_69)
 From the abstract: "We propose a videorecognition framework that relies on two key observations: (1) while pixels may change rapidly from frame to frame, the semantic content of a  scene  evolves  more  slowly,  and  (2)  execution  can  be  viewed  as  an aspect of architecture, yielding purpose-fit computation schedules fornetworks. We define a novel family of “clockwork” convnets driven byfixed or adaptive clock signals that schedule the processing of differentlayers at different update rates according to their semantic stability."
+
+
+[Lundquist17: Sparse Coding on Stereo Video for Object Detection](https://arxiv.org/pdf/1705.07144.pdf)
