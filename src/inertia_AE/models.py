@@ -165,6 +165,8 @@ class inertiaAE32(nn.Module):
             kaiming_init(m)
 
     def encode(self, x):
+        # compute n_frames locally
+        n_frames = x.shape[1]
         # all but last x make all but mu at first time point
         x = x[:,:-1,:,:,:].contiguous().view(-1,self.img_channels,x.shape[-2],x.shape[-1])
         # Note: if you really want to save gpu memory ops, do the above indexing in the solver
@@ -175,7 +177,7 @@ class inertiaAE32(nn.Module):
         mu_enc = self.fc_enc_mu(x.view(-1, 256)) # this has T-1 frames
         
         #### INERTIA
-        mu_enc = mu_enc.view(-1,self.n_frames-1,self.n_latent)
+        mu_enc = mu_enc.view(-1,n_frames-1,self.n_latent)
         # first mu_pred is just mu_enc
         mu_pred = torch.zeros_like(mu_enc)
         mu = torch.zeros_like(mu_enc)
@@ -184,9 +186,9 @@ class inertiaAE32(nn.Module):
         mu[:,0,:] = mu_pred[:,0,:]
         # second mu_pred is same as first mu_pred
         mu_pred[:,1,:] = mu_pred[:,0,:]
-        for i in range(1,self.n_frames-1):
+        for i in range(1,n_frames-1):
             mu[:,i,:] = (1-self.gamma)*mu_enc[:,i,:] + self.gamma*mu_pred[:,i,:]
-            if i < self.n_frames-2:
+            if i < n_frames-2:
                 mu_pred[:,i+1,:] = 1*(mu[:,i,:] - mu[:,i-1,:]) + mu[:,i,:]
 
         return mu, mu_enc, mu_pred

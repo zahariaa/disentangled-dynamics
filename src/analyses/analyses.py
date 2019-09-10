@@ -50,9 +50,11 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
 
     # ... and evaulate them all at once
     if type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == 'dynamicAE32':
-        yhat   = encoder(x)
+        yhat     = encoder(x)
+    elif type(model).__name__ == 'inertiaAE32':
+        yhat,_,_ = encoder(x)
     else:
-        yhat,_ = encoder(x)
+        yhat,_   = encoder(x)
     return yhat,x
 
 # Plot sweeps through model
