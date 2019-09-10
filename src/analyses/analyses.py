@@ -41,12 +41,12 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
         def_latents = 0.5*np.ones(n_latent)
         
     # Generate stimulus sweeps
-    x = torch.zeros((nsweep*n_latent,1,32,32))
+    x = torch.zeros((n_latent,nsweep,1,32,32))
     for i in np.arange(0,nsweep):
-        x[0*nsweep+i,:,:,:] = ds.arbitraryCircle(latents[i],def_latents[1],def_latents[2],def_latents[3])
-        x[1*nsweep+i,:,:,:] = ds.arbitraryCircle(def_latents[0],latents[i],def_latents[2],def_latents[3])
-        x[2*nsweep+i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],latents[i],def_latents[3])
-        x[3*nsweep+i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],def_latents[2],latents[i])
+        x[0,i,:,:,:] = ds.arbitraryCircle(latents[i],def_latents[1],def_latents[2],def_latents[3])
+        x[1,i,:,:,:] = ds.arbitraryCircle(def_latents[0],latents[i],def_latents[2],def_latents[3])
+        x[2,i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],latents[i],def_latents[3])
+        x[3,i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],def_latents[2],latents[i])
 
     # ... and evaulate them all at once
     if type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == 'dynamicAE32':
@@ -73,11 +73,11 @@ def plotCircleSweep(yhat,x=None,nmodels=None):
         x    = yhat[1]
         yhat = yhat[0]
 
-    if type(yhat) is torch.Tensor and len(yhat.shape)>2:
+    if type(yhat) is torch.Tensor and len(yhat.shape)>3:
         # distribute yhat tensor to list
         yhat_list = list()
-        for i in range(0,np.prod(yhat.shape[2:]).astype(int)):
-            yhat_list.append(yhat[:,:,i])
+        for i in range(0,yhat.shape[-1]):
+            yhat_list.append(yhat[:,:,:,i])
         yhat = yhat_list
         
     if nmodels is None:
@@ -92,7 +92,7 @@ def plotCircleSweep(yhat,x=None,nmodels=None):
     for latentdim in range(4):
         for imodel in range(nmodels):
             plt.sca(ax[imodel,latentdim])
-            plt.plot(yhat[imodel][latentdim*16+np.arange(0,16),:].detach().numpy())
+            plt.plot(yhat[imodel][latentdim,:,:].detach().numpy())
 
         cnt = -1
         for img in np.linspace(0,15,nimgs).astype(int):
@@ -100,7 +100,7 @@ def plotCircleSweep(yhat,x=None,nmodels=None):
             plt.sca(ax[nmodels+cnt,latentdim])
             plt.set_cmap('gray')
             ax[nmodels+cnt,latentdim].imshow(
-                x[latentdim*16+img,:,:,:].squeeze(), vmin=0, vmax=1)
+                x[latentdim,img,:,:,:].squeeze(), vmin=0, vmax=1)
             plt.axis('off')
     return fig, ax
 

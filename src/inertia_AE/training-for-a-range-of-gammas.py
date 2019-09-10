@@ -16,4 +16,4 @@ for _, ng in enumerate(gamma_values):
 
     g = '--gamma=%s' % ng
     print(g)
-    subprocess.call(['python', 'main.py', g, '--max_iter=50000', '--n_latent=4'])
+    subprocess.call(['python', 'main.py', g, '--max_iter=50000', '--n_latent=10'])
