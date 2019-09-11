@@ -37,9 +37,9 @@ def main(args):
     net.train()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='inertia AE (autoencoder with representational inertia)')
+    parser = argparse.ArgumentParser(description='inertia bVAE (dynamic beta VAE with representational inertia)')
 
-    parser.add_argument('--model', default='inertiaAE32', type=str, help='which model to train (inertiaAE32, inertiaAE64))')
+    parser.add_argument('--model', default='inertiaVAE32', type=str, help='which model to train (inertiaVAE32, inertiaVAE64))')
     
     parser.add_argument('--seed', default=1, type=int, help='random seed')
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
@@ -51,6 +51,8 @@ if __name__ == "__main__":
     parser.add_argument('--n_latent', default=4, type=int, help='dimension of the latent code')
     parser.add_argument('--img_channels', default=1, type=int, help='number of image channels')
     
+    parser.add_argument('--beta', default=1, type=float, help='beta for the beta VAE with representational inertia')
+    parser.add_argument('--beta_is_normalized', default=True, type=str2bool, help='flag whether input beta should be interpreted as normalized beta (default) or as unnormalized beta')
     parser.add_argument('--gamma', default=1, type=float, help='gamma hyperparameter for the prediction contribution to inertia')
 
     parser.add_argument('--dset_dir', default='data', type=str, help='dataset directory')

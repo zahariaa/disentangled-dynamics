@@ -49,12 +49,9 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
         x[3,i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],def_latents[2],latents[i])
 
     # ... and evaulate them all at once
-    if type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == 'dynamicAE32':
-        yhat     = encoder(x)
-    elif type(model).__name__ == 'inertiaAE32':
-        yhat,_,_ = encoder(x)
-    else:
-        yhat,_   = encoder(x)
+    yhat = encoder(x)
+    if not (type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == 'dynamicAE32'):
+        yhat = yhat[0]
     return yhat,x
 
 # Plot sweeps through model

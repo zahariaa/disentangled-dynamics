@@ -16,7 +16,9 @@ import os
 import pickle
 
 import sys
-from models import inertiaAE32, loss_function, reconstruction_loss, prediction_loss
+from models import inertiaVAE32, loss_function, reconstruction_loss, kl_divergence, prediction_loss
+from models import normalized_beta_from_beta, beta_from_normalized_beta
+
 
 sys.path.append("..") # Adds higher directory to python modules path.
 from data.dspritesbT import dSpriteBackgroundDatasetTime
@@ -52,7 +54,11 @@ class DataGather(object):
                     total_loss=[],
                     recon_loss=[],
                     pred_loss=[],
+                    total_kld=[],
+                    dim_wise_kld=[],
+                    mean_kld=[],
                     mu=[],
+                    var=[],
                     target=[],
                     reconstructed=[],)
 
@@ -91,7 +97,15 @@ class Solver(object):
         self.image_size = args.image_size
         self.n_latent = args.n_latent
         self.img_channels = args.img_channels            
-            
+        
+        # beta for beta VAE
+        if args.beta_is_normalized:
+            self.beta_norm = args.beta
+            self.beta = beta_from_normalized_beta(self.beta_norm,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)
+        else:
+            self.beta = args.beta
+            self.beta_norm = normalized_beta_from_beta(self.beta,N= self.image_size * self.image_size * self.img_channels,M=args.n_latent)            
+
         self.gamma = args.gamma
         
         dataloaderparams = {'batch_size': args.batch_size,
@@ -106,9 +120,9 @@ class Solver(object):
                                             shapetype = 'dsprite'), **dataloaderparams)
         
         
-        if args.model.lower() == "inertiaae32":
-            net = inertiaAE32
-            self.modeltype = 'inertiaAE'
+        if args.model.lower() == "inertiavae32":
+            net = inertiaVAE32
+            self.modeltype = 'inertiaVAE'
         else:
             raise Exception('model "%s" unknown' % args.model)
             
@@ -116,6 +130,7 @@ class Solver(object):
         self.net = net(n_latent = self.n_latent, img_channels = self.img_channels).to(self.device)
         
         self.reconstruction_loss = reconstruction_loss
+        self.kl_divergence = kl_divergence
         self.prediction_loss = prediction_loss
         
         self.loss = loss_function
@@ -137,7 +152,7 @@ class Solver(object):
         
         self.ckpt_dir = args.ckpt_dir
         self.load_last_checkpoint = args.load_last_checkpoint
-        self.ckpt_name = '{}_nlatent={}_gamma={}_{}_last'.format(self.model.lower(), self.n_latent, self.gamma, args.dataset.lower())
+        self.ckpt_name = '{}_nlatent={}_betanorm={}_gamma={}_{}_last'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
         
         
         self.save_step = args.save_step
@@ -150,8 +165,9 @@ class Solver(object):
         self.trainstats_gather_step = args.trainstats_gather_step
         self.trainstats_dir = args.trainstats_dir
         if not os.path.isdir(self.trainstats_dir):
-            os.mkdir(self.trainstats_dir)        
-        self.trainstats_fname = '{}_nlatent={}_gamma={}_{}'.format(self.model.lower(), self.n_latent, self.gamma, args.dataset.lower())
+            os.mkdir(self.trainstats_dir)
+        self.trainstats_fname = '{}_nlatent={}_betanorm={}_gamma={}_{}'.format(self.model.lower(), self.n_latent, self.beta_norm, self.gamma, args.dataset.lower())
+
         self.gather = DataGather(filename = os.path.join(self.trainstats_dir, self.trainstats_fname))
         
         
@@ -169,7 +185,11 @@ class Solver(object):
         """ /begin of non-generic part (might need to be adapted for different models / data)"""
         running_recon_loss_trainstats = 0.0
         running_pred_loss_trainstats = 0.0
+        running_total_kld = 0.0
+        running_dim_wise_kld = 0.0
+        running_mean_kld = 0.0
         plot_total_loss = []
+        plot_kld = []
         plot_recon_loss = []
         plot_pred_loss = []
         
@@ -186,17 +206,19 @@ class Solver(object):
                 img_batch, _ = samples.to(self.device), latents.to(self.device)
                 
                 # in VAE, input = output/target
-                if self.modeltype == 'inertiaAE':
+                if self.modeltype == 'inertiaVAE':
                     input_batch = img_batch
                     output_batch = img_batch
 
-                                    
-                predicted_batch, mu, mu_enc, mu_pred = self.net(input_batch)
+#                 predicted_batch, mu, _, mu_pred, logvar, _, _ = self.net(input_batch)
+                predicted_batch, mu, _, mu_pred, logvar = self.net(input_batch)
                 
                 recon_loss = self.reconstruction_loss(x = output_batch, x_recon = predicted_batch)
+                total_kld, dimension_wise_kld, mean_kld = self.kl_divergence(mu, logvar)
                 pred_loss = self.prediction_loss(mu, mu_pred)
                 
-                actLoss = self.loss(recon_loss=recon_loss)
+                actLoss = self.loss(recon_loss=recon_loss, total_kld=total_kld, beta = self.beta)
+
                 
                 actLoss.backward()
                 self.optim.step()                
@@ -206,24 +228,37 @@ class Solver(object):
                 running_loss_trainstats += actLoss.item()
                 running_recon_loss_trainstats += recon_loss.item()
                 running_pred_loss_trainstats += pred_loss.item()
+                running_total_kld += total_kld.item()
+                running_dim_wise_kld += dimension_wise_kld.cpu().detach().numpy()
+                running_mean_kld += mean_kld.item()
                 
                 # update gather object with training information
                 if self.global_iter % self.trainstats_gather_step == 0:
                     running_loss_trainstats = running_loss_trainstats / self.trainstats_gather_step
                     running_recon_loss_trainstats = running_recon_loss_trainstats / self.trainstats_gather_step
                     running_pred_loss_trainstats = running_pred_loss_trainstats / self.trainstats_gather_step
+                    running_total_kld = running_total_kld / self.trainstats_gather_step
+                    running_dim_wise_kld = running_dim_wise_kld / self.trainstats_gather_step
+                    running_mean_kld = running_mean_kld / self.trainstats_gather_step
                     self.gather.insert(iter=self.global_iter,
                                        total_loss=running_loss_trainstats,
                                        target = output_batch[0].detach().cpu().numpy(),
                                        reconstructed = predicted_batch[0].detach().cpu().numpy(),
                                        recon_loss=running_recon_loss_trainstats,
                                        pred_loss=running_pred_loss_trainstats,
+                                       total_kld = running_total_kld,
+                                       dim_wise_kld = running_dim_wise_kld,
+                                       mean_kld = running_mean_kld,
                                        )
                     running_loss_trainstats = 0.0
                     running_recon_loss_trainstats = 0.0
                     running_pred_loss_trainstats = 0.0
+                    running_total_kld = 0.0
+                    running_dim_wise_kld = 0.0
+                    running_mean_kld = 0.0
                     
                     if plotmode:    # plot mini-batches
+                        plot_kld.append(total_kld.detach().cpu().numpy())
                         plot_total_loss.append(actLoss.item())
                         plot_recon_loss.append(recon_loss.item())
                         plot_pred_loss.append(pred_loss.item())
@@ -231,59 +266,77 @@ class Solver(object):
                         clear_output(wait=True)
                         fig = plt.figure(figsize=(10,8))
                         
-                        plt.subplot(4, 3, 1)
+                        plt.subplot(4, 4, 1)
                         plt.plot(plot_total_loss)
                         plt.xlabel('minibatches')
                         plt.title('Total loss')
                         
-                        plt.subplot(4, 3, 2)
+                        plt.subplot(4, 4, 2)
+                        plt.plot(plot_kld)
+                        plt.xlabel('minibatches')
+                        plt.title('Total KL-divergence')                        
+                        
+                        plt.subplot(4, 4, 3)
                         plt.plot(plot_recon_loss)
                         plt.xlabel('minibatches')
                         plt.title('Reconstruction training loss')
 
-                        plt.subplot(4, 3, 3)
+                        plt.subplot(4, 4, 4)
                         plt.plot(plot_pred_loss)
                         plt.xlabel('minibatches')
                         plt.title('Prediction training loss')
 
 #                         import ipdb; ipdb.set_trace()
 
-                        plt.subplot(4, 3, 4)
-                        plt.imshow(input_batch[0][1][0].detach().cpu().numpy())
+                        plt.subplot(4, 4, 5)
+                        plt.imshow(input_batch[0][2][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
             
-                        plt.subplot(4, 3, 5)
+                        plt.subplot(4, 4, 6)
                         plt.imshow(input_batch[0][4][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
-            
-                        plt.subplot(4, 3, 6)
-                        plt.imshow(input_batch[0][7][0].detach().cpu().numpy())
+                        
+                        plt.subplot(4, 4, 7)
+                        plt.imshow(input_batch[0][6][0].detach().cpu().numpy())
+                        plt.set_cmap('gray')
+
+                        plt.subplot(4, 4, 8)
+                        plt.imshow(input_batch[0][8][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
                         
-                        plt.subplot(4, 3, 7)
-                        plt.imshow(predicted_batch[0][1][0].detach().cpu().numpy())
+                        plt.subplot(4, 4, 9)
+                        plt.imshow(predicted_batch[0][2][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
             
-                        plt.subplot(4, 3, 8)
+                        plt.subplot(4, 4, 10)
                         plt.imshow(predicted_batch[0][4][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
+                        
+                        plt.subplot(4, 4, 11)
+                        plt.imshow(predicted_batch[0][6][0].detach().cpu().numpy())
+                        plt.set_cmap('gray')
             
-                        plt.subplot(4, 3, 9)
-                        plt.imshow(predicted_batch[0][7][0].detach().cpu().numpy())
+                        plt.subplot(4, 4, 12)
+                        plt.imshow(predicted_batch[0][8][0].detach().cpu().numpy())
                         plt.set_cmap('gray')
                         
-                        plt.subplot(4, 3, 10)
-                        img = plt.imshow((input_batch[0][1][0]-predicted_batch[0][1][0]).detach().cpu().numpy())
+                        plt.subplot(4, 4, 13)
+                        img = plt.imshow((input_batch[0][2][0]-predicted_batch[0][2][0]).detach().cpu().numpy())
                         plt.set_cmap('bwr')
                         colorAxisNormalize(fig.colorbar(img))
             
-                        plt.subplot(4, 3, 11)
+                        plt.subplot(4, 4, 14)
                         img = plt.imshow((input_batch[0][4][0]-predicted_batch[0][4][0]).detach().cpu().numpy())
                         plt.set_cmap('bwr')
                         colorAxisNormalize(fig.colorbar(img))
             
-                        plt.subplot(4, 3, 12)
-                        img = plt.imshow((input_batch[0][7][0]-predicted_batch[0][7][0]).detach().cpu().numpy())
+                        plt.subplot(4, 4, 15)
+                        img = plt.imshow((input_batch[0][6][0]-predicted_batch[0][6][0]).detach().cpu().numpy())
+                        plt.set_cmap('bwr')
+                        colorAxisNormalize(fig.colorbar(img))
+                        
+                        plt.subplot(4, 4, 16)
+                        img = plt.imshow((input_batch[0][8][0]-predicted_batch[0][8][0]).detach().cpu().numpy())
                         plt.set_cmap('bwr')
                         colorAxisNormalize(fig.colorbar(img))
 
