@@ -49,13 +49,20 @@ def sweepCircleLatents(model,latents=np.linspace(0,1,16),def_latents=None):
         x[3,i,:,:,:] = ds.arbitraryCircle(def_latents[0],def_latents[1],def_latents[2],latents[i])
 
     # ... and evaulate them all at once
-    yhat = encoder(x)
+    if type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == ('staticVAE32'):
+        yhat = encoder(x.view(-1,1,32,32))
+    else:
+        yhat = encoder(x)
+    
     if not (type(model).__name__ == 'encoderBVAE_like' or type(model).__name__ == 'dynamicAE32'):
         yhat = yhat[0]
+    
+    if len(yhat.shape)<3:
+        yhat = yhat.view(n_latent,nsweep,n_latent)
     return yhat,x
 
 # Plot sweeps through model
-def plotCircleSweep(yhat,x=None,nmodels=None):
+def plotCircleSweep(yhat,x=None,nmodels=None,nimgs=5):
     """plotCircleSweep(yhat,x):
         plots model latents and a subset of the corresponding stimuli,
         generated from sweepCircleLatents()
@@ -70,18 +77,17 @@ def plotCircleSweep(yhat,x=None,nmodels=None):
         x    = yhat[1]
         yhat = yhat[0]
 
-    if type(yhat) is torch.Tensor and len(yhat.shape)>3:
-        # distribute yhat tensor to list
-        yhat_list = list()
-        for i in range(0,yhat.shape[-1]):
-            yhat_list.append(yhat[:,:,:,i])
-        yhat = yhat_list
+#     if type(yhat) is torch.Tensor and len(yhat.shape)>3:
+#         # distribute yhat tensor to list
+#         yhat_list = list()
+#         for i in range(0,yhat.shape[-1]):
+#             yhat_list.append(yhat[:,:,:,i])
+#         yhat = yhat_list
         
     if nmodels is None:
         nmodels = 1
-        yhat = [yhat]
-    
-    nimgs = 5
+        if len(yhat.shape)<4:
+            yhat = yhat[np.newaxis,:,:,:]
     
     # Start a-plottin'
     fig, ax = plt.subplots(nimgs+nmodels,4,figsize=(9, 15), dpi= 80, facecolor='w', edgecolor='k')
@@ -89,7 +95,8 @@ def plotCircleSweep(yhat,x=None,nmodels=None):
     for latentdim in range(4):
         for imodel in range(nmodels):
             plt.sca(ax[imodel,latentdim])
-            plt.plot(yhat[imodel][latentdim,:,:].detach().numpy())
+            plt.plot(yhat[imodel,latentdim,:,:].detach().numpy())
+            plt.axis('off')
 
         cnt = -1
         for img in np.linspace(0,15,nimgs).astype(int):

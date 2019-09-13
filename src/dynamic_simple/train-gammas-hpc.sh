@@ -55,7 +55,7 @@ then
    mkdir $scriptdir
    mkdir $scriptdir/r
    mkdir $scriptdir/e
-   mkdir $scriptdir/o
+#   mkdir $scriptdir/o
 fi
 
 ######### construct SLURM (job array) script
@@ -66,7 +66,7 @@ pbtxt2="#SBATCH --account=nklab\n#SBATCH --job-name=$jobname"
 pbtxt3="#SBATCH --nodes=1\n#SBATCH --cpus-per-task=$numnodes\n#SBATCH --gres=gpu:$requestgpu"
 pbtxt4="#SBATCH --time=$walltime"
 pbtxt5="#SBATCH --mem-per-cpu=$memory"
-pbtxt8="#SBATCH --output=${scriptdir}/o/${jobname}%a.txt"
+pbtxt8="" #SBATCH --output=${scriptdir}/o/${jobname}%a.txt"
 pbtxt9="#SBATCH --error=${scriptdir}/e/${jobname}%a.txt"
 pbtxt9a="\nmodule load anaconda/3-2018.12\nsource activate pytorchenv\nimport torch\n"
 

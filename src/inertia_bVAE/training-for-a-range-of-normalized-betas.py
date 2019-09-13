@@ -11,7 +11,7 @@ import numpy as np
 import subprocess
 
 normalized_beta_values = np.logspace(np.log(.001), np.log(5), 6, base=np.e)
-gamma_values = np.linspace(0, 1, 6)
+gamma_values = np.linspace(0, 0.8, 5)
 
 for _, ng in enumerate(gamma_values):
 
