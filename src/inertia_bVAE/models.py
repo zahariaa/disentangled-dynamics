@@ -106,7 +106,7 @@ def kl_divergence(mu, logvar):
     return total_kld.sum(), dimension_wise_kld.mean(1), mean_kld.mean()
 
 def prediction_loss(mu,mu_pred):
-    return 0.5*torch.sum((mu[:2,:]-mu_pred[:2,:])**2)
+    return 0.5*torch.sum((mu[2:,:]-mu_pred[2:,:])**2)
 
 def loss_function(recon_loss, total_kld, beta = 1):
 
