@@ -74,3 +74,6 @@ From the abstract: "We propose a videorecognition framework that relies on two k
 
 
 [Lundquist17: Sparse Coding on Stereo Video for Object Detection](https://arxiv.org/pdf/1705.07144.pdf)
+
+
+[Steenkiste19: Are Disentangled Representations Helpful for Abstract Visual Reasoning?](https://arxiv.org/abs/1905.12506)
