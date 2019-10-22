@@ -77,3 +77,7 @@ From the abstract: "We propose a videorecognition framework that relies on two k
 
 
 [Steenkiste19: Are Disentangled Representations Helpful for Abstract Visual Reasoning?](https://arxiv.org/abs/1905.12506)
+
+
+!!!
+[WhitneyFergus19: Disentangling Video with Independent Prediction](https://arxiv.org/pdf/1901.05590.pdf)
