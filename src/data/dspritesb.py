@@ -320,7 +320,7 @@ def partition_init(training_proportion=0.8,dimensionwise_partition=True,shapetyp
         
 # Helper function to show images
 def show_images_grid(samples):
-    num_images=samples.size(0)
+    num_images=samples.shape[0]
     ncols = int(np.ceil(num_images**0.5))
     nrows = int(np.ceil(num_images / ncols))
     _, axes = plt.subplots(ncols, nrows, figsize=(nrows * 3, ncols * 3))
