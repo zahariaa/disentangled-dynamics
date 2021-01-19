@@ -1,91 +1,79 @@
-\documentclass{article}
+\documentclass[10pt,letterpaper]{article}
 
-% if you need to pass options to natbib, use, e.g.:
-%     \PassOptionsToPackage{numbers, compress}{natbib}
-% before loading neurips_2018
+\usepackage{ccn}
+\usepackage{pslatex}
+\usepackage{apacite}
 
-% ready for submission
-% \usepackage{neurips_2018}
+\title{Analyzing disentanglement of visual objects in semi-supervised neural networks}
+ 
+\author{{\large \bf Andrew David Zaharia (andrew.z@columbia.edu)}$^{1,\star}$
+  \and {\large \bf Benjamin Peters (benjamin.peters@columbia.edu)}$^{1,\star}$
+  \AND {\large \bf John Cunningham (jpc2181@columbia.edu)}$^2$
+  \AND {\large \bf Nikolaus Kriegeskorte (n.kriegeskorte@columbia.edu)}$^{1,3}$
+  \AND $^1$ Mortimer B. Zuckerman Mind Brain Behavior Institute, Columbia University, New York, NY 10027, USA\\
+  $^2$ Department of Statistics and Grossman Center, Columbia University, New York, NY 10027, USA\\
+  $^3$ Departments of Psychology, Neuroscience, and Electrical Engineering, Columbia University, New York, NY 10027, USA\\
+  $^\star$ These authors contributed equally to this work}
 
-% to compile a preprint version, e.g., for submission to arXiv, add add the
-% [preprint] option:
-     \usepackage[preprint]{neurips_2018}
+%% AZ additions
+\usepackage{graphicx,xcolor}
+\graphicspath{{./figures/}}
 
-% to compile a camera-ready version, add the [final] option, e.g.:
-     %\usepackage[final]{neurips_2018}
-
-% to avoid loading the natbib package, add option nonatbib:
-%     \usepackage[nonatbib]{neurips_2018}
-
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
-\usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
-
-\usepackage{amsmath}      % microtypography
-
-\title{Disentangling via dynamics}
-
-% The \author macro works with any number of authors. There are two commands
-% used to separate the names and addresses of multiple authors: \And and \AND.
-%
-% Using \And between authors leaves it to LaTeX to determine where to break the
-% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
-% authors names on the first line, and the last on the second line, try using
-% \AND instead of \And before the third author name.
-
-\author{%
-  Benjamin \& Andrew \\ %\thanks{}
-  %Zuckerman Institute\\
-  %Columbia University\\
-  %New York, NY 10027 \\
-  % examples of more authors
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \AND
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-}
+% \hyphenation{auto-encoder}
+\hyphenation{auto-encoders}
+% \hyphenation{dis-entangle}
+\newcommand{\bvae}{$\beta$-VAE~}
 
 \begin{document}
-% \nipsfinalcopy is no longer used
 
 \maketitle
 
-\begin{abstract}
+\section{Abstract}
+{
+\bf
+A fundamental goal of visual systems is to condense images into compact representations of the relevant information they contain. Ideally, these representations would consist of the independent ``generative factors'' that fully determine, on a semantic level, the visual input. Such a ``disentangled'' representation could consist of the identity of a background scene, and the identity, position, pose, and size of an object. Recent research in deep neural networks (DNNs) has focused on achieving disentangled representations, through unsupervised learning, of single objects or faces in isolation. We trained and analyzed a popular DNN model of disentanglement, the $\beta$-variational autoencoder ($\beta$-VAE) on a new dataset, containing a ``foreground'' white circle and ``background'' isotropic Gaussian. We show that the neural network autoencoder architecture we use can achieve a perfectly disentangled latent representation with supervised learning, but only achieves partial disentanglement when using the unsupervised \bvae loss function. On our dataset, higher $\beta$ values result in higher reconstruction loss and greater entanglement. We propose that further inductive bias is needed to achieve better disentanglement, such as a representation which factorizes static properties and their dynamics.
+}
+\begin{quote}
+\small
+\textbf{Keywords:} 
+disentanglement; unsupervised learning; deep neural network; autoencoder; object vision
+\end{quote}
 
 
-\end{abstract}
+%\section{Introduction}
 
-\input{introduction.tex}
+ \textit{Disentangled} visual representations compactly and independently encode the true generative factors of the world \cite{DiCarlo2007,Bengio2009}. For object recognition, such factors could be their identity, size, rotation, and color.
+
+ Recent work on disentanglement in DNNs has focused on the unsupervised learning setting. The $\beta$-VAE was designed to learn more disentangled representations by treating the reconstruction error term in the VAE loss function as a regularizer \cite{Higgins2017,Kingma2014}. Here we explore to what extent this approach achieves disentanglement in a scenario where such representations are achievable with the chosen architecture.
 
 
-\input{methods.tex}
+%\section{Experiments}
 
-\input{results.tex}
+% \begin{figure}[h!]
+%   % \begin{center}
+%      \includegraphics[width=3.375in]{latents_smaller.pdf}
+%   % \end{center}
+%   \caption{\textbf{Circle+Gaussian dataset and varying levels of entangled representations.}}{(a) The circle+Gaussian dataset, with one generating factor changing in each column (from left to right: circle horizontal and vertical locations, Gaussian horizontal and vertical locations). (b) A perfectly disentangled representation. As one generative factor linearly increases, one unique latent variable also linearly increases while the rest are constant. (c) In entangled representations, as one generative factor changes, multiple latent factors change.}
+%   \label{fig:dataset}
+% \end{figure}
 
-\input{discussion.tex}
+We generated images by randomly varying the positions of a circular disc occluding and a larger isotropic Gaussian, while keeping size and intensity fixed. There are 4 generative factors for this dataset: the horizontal and vertical position of the two objects. An ideal encoder for these images that is perfectly disentangled is one with four latent variables, where each one uniquely maps to one of the four generative factors. In an entangled representation, multiple latent variables will change when varying a single generative factor.
 
+We started with a simple, 4-layer convolutional encoder network with supervised training to ensure that a perfectly disentangled encoder is achievable. We found this encoder can extract and perfectly disentangle the generating factors.
+
+Next, we trained a \bvae with the same encoder network architecture and a decoder network with size-matched fully connected and deconvolutional layers in reverse order, for different $\beta$. The resulting representations are entangled, and become less informative for higher $\beta$. The level of disentanglement and reconstruction quality in \bvae further declined with increasing $\beta$, consistent with previous predictions.
+
+In natural experience, objects are dynamic. The generative factors determining an object's appearance are likely to remain temporally stable or vary smoothly and slowly \cite{Wiskott2002}. Such prior knowledge, as an inductive bias, could support feature learning in biological systems. We will train and analyze an autoencoder, designed to factorize static object properties and their dynamics, and predict that it will achieve better disentanglement.
+
+\bigskip
+
+%\section{Acknowledgments}
+%Place acknowledgments (including funding information) in a section at
+%the end of the paper.
+
+\bibliographystyle{apacite}
+\setlength{\bibleftmargin}{.125in}
+\setlength{\bibindent}{-\bibleftmargin}
 \bibliography{refs}
-\bibliographystyle{unsrt}
 
 \end{document}
