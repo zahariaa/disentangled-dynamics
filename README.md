@@ -21,7 +21,7 @@ bottleneck z to encode information.
 </p>
 
 
-### A perfectly dientangle-able task
+### A perfectly disentangle-able task
 We trained the networks on a new dataset, with each image (32x32 pixels) containing a “foreground” white circle and “background” isotropic Gaussian.
 
 <p align="center">
